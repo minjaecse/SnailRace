@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { checkBackendHealth } from '../../lib/api';
+import { checkAuthHealth } from '../../lib/api';
 import styles from './BackendHealthCheck.module.css';
 
 type HealthState = 'checking' | 'connected' | 'failed';
@@ -10,10 +10,10 @@ export default function BackendHealthCheck() {
   useEffect(() => {
     let isMounted = true;
 
-    checkBackendHealth()
+    checkAuthHealth()
       .then((result) => {
         if (!isMounted) return;
-        setHealthState(result.ok ? 'connected' : 'failed');
+        setHealthState(result.status >= 200 ? 'connected' : 'failed');
       })
       .catch(() => {
         if (!isMounted) return;
@@ -28,9 +28,9 @@ export default function BackendHealthCheck() {
   return (
     <div className={`${styles.badge} ${styles[healthState]}`} aria-live="polite">
       <span className={styles.dot} />
-      {healthState === 'checking' && 'Health API checking'}
-      {healthState === 'connected' && 'Health API connected'}
-      {healthState === 'failed' && 'Health API failed'}
+      {healthState === 'checking' && 'Auth health checking'}
+      {healthState === 'connected' && 'Auth health connected'}
+      {healthState === 'failed' && 'Auth health failed'}
     </div>
   );
 }
