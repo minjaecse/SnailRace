@@ -58,6 +58,15 @@
   color: var(--text-main);
 }
 
+.iconBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fileInput {
+  display: none;
+}
+
 .actionRow {
   display: flex;
   justify-content: space-between;
@@ -138,6 +147,13 @@
   padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.05em;
+}
+
+.errorText {
+  color: #FF3B30;
+  font-size: 0.8125rem;
+  padding: 0 8px 8px;
+  margin: 0;
 }
 
 @media (max-width: 480px) {

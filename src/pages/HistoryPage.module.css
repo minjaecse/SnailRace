@@ -96,6 +96,12 @@
   font-size: 1rem;
 }
 
+.errorText {
+  color: #FF3B30;
+  font-size: 0.875rem;
+  margin-top: 8px;
+}
+
 /* ── Summary Cards ── */
 .summaryGrid {
   display: grid;

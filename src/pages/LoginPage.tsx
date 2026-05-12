@@ -1,16 +1,23 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const { login, status, error } = useAuthStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: integrate with API
-    console.log('Login:', email);
+    try {
+      await login({ email, password });
+      navigate('/');
+    } catch {
+      // Error message is managed by the auth store.
+    }
   };
 
   return (
@@ -112,8 +119,9 @@ export default function LoginPage() {
 
           {/* Submit */}
           <button type="submit" className={styles.submitBtn}>
-            Log In
+            {status === 'loading' ? 'Logging in...' : 'Log In'}
           </button>
+          {error && <p className={styles.subtitle}>{error}</p>}
         </form>
       </div>
     </div>

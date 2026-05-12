@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import s from './HistoryPage.module.css';
 import AuthBackground from '../components/common/AuthBackground';
+import { useAuthStore } from '../stores/authStore';
+import { useHistoryStore } from '../stores/historyStore';
 
 interface HistoryRecord {
-  id: number;
+  id: string;
   thumb: string;
   duration: string;
   title: string;
@@ -16,7 +18,7 @@ interface HistoryRecord {
 
 const HISTORY_DATA: HistoryRecord[] = [
   {
-    id: 1,
+    id: '1',
     thumb: 'https://images.unsplash.com/photo-1516259762381-22954d7d3ad2?w=300&q=80',
     duration: '0:45',
     title: 'president_speech_dub_v2.mp4',
@@ -26,7 +28,7 @@ const HISTORY_DATA: HistoryRecord[] = [
     percentage: '98.2%',
   },
   {
-    id: 2,
+    id: '2',
     thumb: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=300&q=80',
     duration: '1:12',
     title: 'team_meeting_zoom_rec.mp4',
@@ -36,7 +38,7 @@ const HISTORY_DATA: HistoryRecord[] = [
     percentage: '99.8%',
   },
   {
-    id: 3,
+    id: '3',
     thumb: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300&q=80',
     duration: '0:15',
     title: 'celebrity_endorsement_tiktok.mp4',
@@ -46,7 +48,7 @@ const HISTORY_DATA: HistoryRecord[] = [
     percentage: '94.5%',
   },
   {
-    id: 4,
+    id: '4',
     thumb: 'https://images.unsplash.com/photo-1506744626753-1fa30d22e3a9?w=300&q=80',
     duration: '2:30',
     title: 'news_broadcast_clip_01.mp4',
@@ -56,7 +58,7 @@ const HISTORY_DATA: HistoryRecord[] = [
     percentage: '97.1%',
   },
   {
-    id: 5,
+    id: '5',
     thumb: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=300&q=80',
     duration: '0:08',
     title: 'funny_cat_meme_generated.mp4',
@@ -74,19 +76,41 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
+  const { isAuthenticated } = useAuthStore();
+  const { records, isLoading, error, fetchHistory, deleteHistory } = useHistoryStore();
 
   const filters: FilterType[] = ['All', 'FAKE', 'REAL'];
+  const historyData = useMemo<HistoryRecord[]>(() => {
+    if (!records.length) return HISTORY_DATA;
 
-  const filtered = HISTORY_DATA.filter((item) => {
+    return records.map((record) => ({
+      id: record.id,
+      thumb: record.thumb ?? 'https://images.unsplash.com/photo-1516259762381-22954d7d3ad2?w=300&q=80',
+      duration: record.duration ?? '--:--',
+      title: record.title,
+      date: record.date || 'Unknown date',
+      size: record.size ?? '',
+      result: record.result,
+      percentage: record.percentage || '-',
+    }));
+  }, [records]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchHistory().catch(() => undefined);
+  }, [fetchHistory, isAuthenticated]);
+
+  const filtered = historyData.filter((item) => {
     if (activeFilter !== 'All' && item.result !== activeFilter) return false;
     if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase()) && !item.date.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
-  const handleDelete = (e: React.MouseEvent, id: number) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     e.preventDefault();
-    console.log('Delete item:', id);
+    if (!isAuthenticated) return;
+    deleteHistory(id).catch(() => undefined);
   };
 
   return (
@@ -114,22 +138,27 @@ export default function HistoryPage() {
       <div className={s.container}>
         <div className={s.pageHeader}>
           <h1 className={s.pageTitle}>Analysis History</h1>
-          <p className={s.pageSubtitle}>Review your past video analysis records and reports.</p>
+          <p className={s.pageSubtitle}>
+            {isLoading ? 'Loading your analysis records...' : 'Review your past video analysis records and reports.'}
+          </p>
+          {error && <p className={s.errorText}>{error}</p>}
         </div>
 
         {/* Summary Cards */}
         <div className={s.summaryGrid}>
           <div className={s.summaryCard}>
             <div className={s.summaryLabel}>Total Analyses</div>
-            <div className={s.summaryValue}>124</div>
+            <div className={s.summaryValue}>{historyData.length}</div>
           </div>
           <div className={s.summaryCard}>
             <div className={s.summaryLabel}>FAKE Detections</div>
-            <div className={`${s.summaryValue} ${s.summaryValueRed}`}>42</div>
+            <div className={`${s.summaryValue} ${s.summaryValueRed}`}>
+              {historyData.filter((item) => item.result === 'FAKE').length}
+            </div>
           </div>
           <div className={s.summaryCard}>
             <div className={s.summaryLabel}>Avg. Detection Prob.</div>
-            <div className={s.summaryValue}>87.3%</div>
+            <div className={s.summaryValue}>{getAveragePercentage(historyData)}</div>
           </div>
         </div>
 
@@ -225,4 +254,13 @@ export default function HistoryPage() {
       </div>
     </div>
   );
+}
+
+function getAveragePercentage(records: HistoryRecord[]) {
+  const values = records
+    .map((record) => Number(record.percentage.replace('%', '')))
+    .filter((value) => Number.isFinite(value));
+
+  if (!values.length) return '-';
+  return `${(values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)}%`;
 }

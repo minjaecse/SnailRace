@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthBackground from '../components/common/AuthBackground';
+import { useAuthStore } from '../stores/authStore';
 import s from '../styles/auth.module.css';
 import ls from './LoginPage.module.css';
 
@@ -9,10 +10,17 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const navigate = useNavigate();
+  const { register, status, error } = useAuthStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Register:', { name, email });
+    try {
+      await register({ nickname: name, email, password });
+      navigate('/login');
+    } catch {
+      // Error message is managed by the auth store.
+    }
   };
 
   return (
@@ -71,7 +79,10 @@ export default function RegisterPage() {
             </span>
           </label>
 
-          <button type="submit" className={ls.submitBtn}>Sign Up</button>
+          <button type="submit" className={ls.submitBtn} disabled={status === 'loading'}>
+            {status === 'loading' ? 'Creating...' : 'Sign Up'}
+          </button>
+          {error && <p className={ls.subtitle}>{error}</p>}
         </form>
 
         <div className={s.authFooter}>

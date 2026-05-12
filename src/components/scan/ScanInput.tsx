@@ -1,15 +1,34 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useVideoStore } from '../../stores/videoStore';
 import styles from './ScanInput.module.css';
 
 export default function ScanInput() {
   const [url, setUrl] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { submitVideoUrl, uploadVideoFile, isSubmitting, error } = useVideoStore();
 
-  const handleScan = () => {
-    if (!agreed) return;
-    navigate('/scan/analysis');
+  const handleScan = async () => {
+    if (!agreed || !url.trim() || isSubmitting) return;
+    try {
+      await submitVideoUrl(url.trim());
+      navigate('/scan/analysis');
+    } catch {
+      // Error message is managed by the video store.
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !agreed || isSubmitting) return;
+    try {
+      await uploadVideoFile(file);
+      navigate('/scan/analysis');
+    } catch {
+      // Error message is managed by the video store.
+    }
   };
 
   return (
@@ -22,7 +41,20 @@ export default function ScanInput() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
         />
-        <button className={styles.iconBtn} aria-label="Upload File">
+        <input
+          ref={fileInputRef}
+          className={styles.fileInput}
+          type="file"
+          accept="video/*"
+          onChange={handleFileChange}
+        />
+        <button
+          className={styles.iconBtn}
+          aria-label="Upload File"
+          type="button"
+          disabled={!agreed || isSubmitting}
+          onClick={() => fileInputRef.current?.click()}
+        >
           <svg
             width="20"
             height="20"
@@ -51,11 +83,12 @@ export default function ScanInput() {
         <button
           className={styles.btnPrimary}
           onClick={handleScan}
-          disabled={!agreed}
+          disabled={!agreed || !url.trim() || isSubmitting}
         >
-          SCAN NOW <span className={styles.beta}>BETA</span>
+          {isSubmitting ? 'REQUESTING' : 'SCAN NOW'} <span className={styles.beta}>BETA</span>
         </button>
       </div>
+      {error && <p className={styles.errorText}>{error}</p>}
     </div>
   );
 }

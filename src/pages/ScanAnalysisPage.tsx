@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { AnalysisResult } from '../lib/api';
+import { useVideoStore } from '../stores/videoStore';
 import s from './ScanAnalysisPage.module.css';
 
 /* ── helpers ── */
@@ -62,6 +64,44 @@ function makeTopoData(n = 120) {
   return bars;
 }
 
+function makeTopoDataFromResult(result: AnalysisResult | null) {
+  if (!result?.per_frame_probs?.length) return makeTopoData();
+  return result.per_frame_probs.map((prob) => {
+    const height = Math.max(5, Math.min(95, prob * 100));
+    return { height, isAnomalous: prob >= 0.75 };
+  });
+}
+
+function makeTableDataFromResult(result: AnalysisResult | null) {
+  if (!result) return makeTableData();
+
+  if (result.suspicious_frames.length) {
+    return result.suspicious_frames.map((frame) => ({
+      time: `frame ${frame.frameIndex}`,
+      frameId: `FRM-${frame.frameIndex}`,
+      vector: 'XAI.HEATMAP',
+      classification: result.final_verdict.toUpperCase(),
+      score: frame.probability ?? 0,
+      variance: Math.abs((frame.probability ?? 0) - 0.5),
+      isPositive: (frame.probability ?? 0) >= 0.5,
+    }));
+  }
+
+  if (result.per_frame_probs?.length) {
+    return result.per_frame_probs.slice(0, 40).map((prob, index) => ({
+      time: `00:00:${(index * 0.1).toFixed(3).padStart(6, '0')}`,
+      frameId: `FRM-${index}`,
+      vector: 'PER_FRAME',
+      classification: prob >= 0.75 ? 'ANOMALY' : 'NORMAL',
+      score: prob,
+      variance: Math.abs(prob - 0.5),
+      isPositive: prob >= 0.5,
+    }));
+  }
+
+  return makeTableData();
+}
+
 /* ── Radial node data ── */
 function makeRadialNodes() {
   const nodes: { x: number; y: number; size: number; blue: boolean; angle: number; radius: number }[] = [];
@@ -88,6 +128,16 @@ export default function ScanAnalysisPage() {
   const [view, setView] = useState<'loading' | 'results'>('loading');
   const [progress, setProgress] = useState(0);
   const [stepText, setStepText] = useState(STEPS[0]);
+  const {
+    currentVideoId,
+    targetLabel,
+    status,
+    result,
+    error,
+    fetchStatus,
+    fetchResult,
+    resetAnalysis: resetVideoAnalysis,
+  } = useVideoStore();
 
   /* Matrix state */
   const [matrixRows, setMatrixRows] = useState<{ data: string; state: 'idle' | 'active' | 'fading' }[]>(
@@ -212,7 +262,7 @@ export default function ScanAnalysisPage() {
 
   /* ── Progress ── */
   useEffect(() => {
-    if (view !== 'loading') return;
+    if (view !== 'loading' || currentVideoId) return;
     let prog = 0;
     const id = setInterval(() => {
       prog += Math.random() * 2.5;
@@ -227,13 +277,54 @@ export default function ScanAnalysisPage() {
     }, 100);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view]);
+  }, [currentVideoId, view]);
+
+  useEffect(() => {
+    if (!currentVideoId || view !== 'loading') return;
+
+    let isMounted = true;
+    let prog = 0;
+    const poll = async () => {
+      try {
+        const nextStatus = await fetchStatus(currentVideoId);
+        if (!isMounted) return;
+
+        if (nextStatus === 'completed') {
+          setProgress(100);
+          setStepText('Compiling confidence report...');
+          const completedResult = await fetchResult(currentVideoId);
+          if (isMounted) setTimeout(() => showResults(completedResult), 300);
+          return;
+        }
+
+        if (nextStatus === 'failed') {
+          setStepText('Analysis failed');
+          return;
+        }
+
+        prog = Math.min(92, prog + 8);
+        setProgress(prog);
+        const stepIdx = Math.min(STEPS.length - 1, Math.floor((prog / 100) * STEPS.length));
+        setStepText(STEPS[stepIdx]);
+      } catch {
+        if (isMounted) setStepText('Analysis status unavailable');
+      }
+    };
+
+    poll();
+    const id = setInterval(poll, 1800);
+    return () => {
+      isMounted = false;
+      clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVideoId, view]);
 
   /* ── Switch to results ── */
-  function showResults() {
+  function showResults(resultOverride = result) {
     cancelAnimationFrame(graphAnimRef.current);
-    setTopoData(makeTopoData());
-    setTableData(makeTableData());
+    setTopoData(makeTopoDataFromResult(resultOverride));
+    setTableData(makeTableDataFromResult(resultOverride));
     setRadialData(makeRadialNodes());
     setRadialExpanded(false);
     setTopoAnimated(false);
@@ -246,6 +337,7 @@ export default function ScanAnalysisPage() {
   }
 
   function resetAnalysis() {
+    resetVideoAnalysis();
     setProgress(0);
     setStepText(STEPS[0]);
     scannerRowRef.current = 0;
@@ -255,6 +347,13 @@ export default function ScanAnalysisPage() {
   }
 
   const pctStr = `${Math.floor(progress)}%`;
+  const targetName = targetLabel ?? 'video_evidence_73A.mp4';
+  const primaryScore = result?.deepfake_score ?? result?.t2v_score ?? 94;
+  const scoreText = `${Math.round(primaryScore)}%`;
+  const verdict = result?.final_verdict ?? 'AI GENERATED';
+  const verdictText = verdict.toUpperCase();
+  const t2vScore = result?.t2v_score !== undefined ? (result.t2v_score / 100).toFixed(2) : '0.84';
+  const suspiciousCount = result?.suspicious_frames.length;
 
   return (
     <div className={s.page}>
@@ -270,13 +369,13 @@ export default function ScanAnalysisPage() {
         <div className={s.headerMeta}>
           <div className={s.metaItem}>
             <span className={s.metaLabel}>Target</span>
-            <span className={s.metaValue}>video_evidence_73A.mp4</span>
+            <span className={s.metaValue}>{targetName}</span>
           </div>
           <div className={s.metaItem}>
             <span className={s.metaLabel}>System</span>
             <span className={s.statusOnline}>
               <span className={s.statusDot} />
-              ONLINE
+              {status ? status.toUpperCase() : 'ONLINE'}
             </span>
           </div>
         </div>
@@ -403,10 +502,11 @@ export default function ScanAnalysisPage() {
                 {/* Progress */}
                 <div className={s.progressSection}>
                   <div className={s.progressInfo}>
-                    <span>{stepText}</span>
-                    <span className={s.progressPct}>{pctStr}</span>
-                  </div>
-                  <div className={s.progressTrack}>
+                  <span>{stepText}</span>
+                  <span className={s.progressPct}>{pctStr}</span>
+                </div>
+                {error && <div className={s.progressInfo}>{error}</div>}
+                <div className={s.progressTrack}>
                     <div className={s.progressFill} style={{ width: pctStr }} />
                   </div>
                 </div>
@@ -421,7 +521,9 @@ export default function ScanAnalysisPage() {
           <div className={s.resultsHeader}>
             <div>
               <h1 className={s.resultsTitle}>Analysis Report</h1>
-              <p className={s.resultsSubtitle}>Video Evidence 73A &bull; Analyzed in 4.2s</p>
+              <p className={s.resultsSubtitle}>
+                {targetName} &bull; {result?.xai_heatmap_url ? 'XAI heatmap available' : 'Analyzed report'}
+              </p>
             </div>
             <button className={s.newAnalysisBtn} onClick={resetAnalysis}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -443,8 +545,8 @@ export default function ScanAnalysisPage() {
                   <span className={`${s.statIndex} ${s.statIndexWhite}`}>01</span>
                 </div>
                 <div>
-                  <div className={s.statBigValue}>94%</div>
-                  <div className={s.statDesc}>AI GENERATED</div>
+                  <div className={s.statBigValue}>{scoreText}</div>
+                  <div className={s.statDesc}>{verdictText}</div>
                 </div>
               </div>
               {/* Temporal */}
@@ -454,8 +556,8 @@ export default function ScanAnalysisPage() {
                   <span className={`${s.statIndex} ${s.statIndexMuted}`}>02</span>
                 </div>
                 <div>
-                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>0.84</div>
-                  <div className={s.statDescMuted}>High variation in frame sequence</div>
+                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>{t2vScore}</div>
+                  <div className={s.statDescMuted}>T2V probability score</div>
                 </div>
               </div>
               {/* Spatial */}
@@ -465,8 +567,8 @@ export default function ScanAnalysisPage() {
                   <span className={`${s.statIndex} ${s.statIndexMuted}`}>03</span>
                 </div>
                 <div>
-                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>12.4k</div>
-                  <div className={s.statDescMuted}>Anomalous pixels in facial bounds</div>
+                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>{suspiciousCount ?? '12.4k'}</div>
+                  <div className={s.statDescMuted}>Suspicious frame candidates</div>
                 </div>
               </div>
               {/* System Load */}
