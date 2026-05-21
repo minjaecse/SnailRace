@@ -71,7 +71,36 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 0 8px 8px 8px;
+}
+
+.typeGroup {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.typeButton {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 7px 10px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.typeButtonActive {
+  background: var(--text-main);
+  color: var(--bg-white);
 }
 
 .consent {
@@ -169,6 +198,14 @@
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
+  }
+
+  .typeGroup {
+    width: 100%;
+  }
+
+  .typeButton {
+    flex: 1;
   }
 
   .btnPrimary {

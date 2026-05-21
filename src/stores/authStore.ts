@@ -42,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
         set({ status: 'loading', error: null });
         try {
           const session = await api.login(payload);
+          localStorage.setItem('accessToken', session.accessToken);
           set({
             accessToken: session.accessToken,
             refreshToken: session.refreshToken ?? null,
@@ -61,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           if (token) await api.logout(token);
         } finally {
+          localStorage.removeItem('accessToken');
           set({
             accessToken: null,
             refreshToken: null,

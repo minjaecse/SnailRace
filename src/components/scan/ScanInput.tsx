@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { VideoAnalysisType } from '../../lib/api';
 import { useVideoStore } from '../../stores/videoStore';
 import styles from './ScanInput.module.css';
 
 export default function ScanInput() {
   const [url, setUrl] = useState('');
+  const [analysisType, setAnalysisType] = useState<VideoAnalysisType>('DEEPFAKE');
   const [agreed, setAgreed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -13,7 +15,7 @@ export default function ScanInput() {
   const handleScan = async () => {
     if (!agreed || !url.trim() || isSubmitting) return;
     try {
-      await submitVideoUrl(url.trim());
+      await submitVideoUrl(url.trim(), analysisType);
       navigate('/scan/analysis');
     } catch {
       // Error message is managed by the video store.
@@ -24,7 +26,7 @@ export default function ScanInput() {
     const file = e.target.files?.[0];
     if (!file || !agreed || isSubmitting) return;
     try {
-      await uploadVideoFile(file);
+      await uploadVideoFile(file, analysisType);
       navigate('/scan/analysis');
     } catch {
       // Error message is managed by the video store.
@@ -72,6 +74,22 @@ export default function ScanInput() {
         </button>
       </div>
       <div className={styles.actionRow}>
+        <div className={styles.typeGroup} aria-label="Analysis type">
+          <button
+            type="button"
+            className={`${styles.typeButton} ${analysisType === 'DEEPFAKE' ? styles.typeButtonActive : ''}`}
+            onClick={() => setAnalysisType('DEEPFAKE')}
+          >
+            DEEPFAKE
+          </button>
+          <button
+            type="button"
+            className={`${styles.typeButton} ${analysisType === 'T2V' ? styles.typeButtonActive : ''}`}
+            onClick={() => setAnalysisType('T2V')}
+          >
+            T2V
+          </button>
+        </div>
         <label className={styles.consent}>
           <input
             type="checkbox"

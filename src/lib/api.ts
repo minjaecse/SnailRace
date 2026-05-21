@@ -1,11 +1,33 @@
-const DEFAULT_API_BASE_URL = 'http://43.200.145.225';
-const VERCEL_API_PROXY_URL = '/api/backend';
+const DEFAULT_GATEWAY_API_BASE_URL = 'http://43.200.145.225';
+const DEFAULT_AUTH_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
+const DEFAULT_USER_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
+const DEFAULT_VIDEO_API_BASE_URL = 'http://43.200.145.225:8081';
+const VERCEL_GATEWAY_API_PROXY_URL = '/api/backend';
+const VERCEL_VIDEO_API_PROXY_URL = '/api/video-backend';
 
 export function getApiBaseUrl() {
-  const configuredUrl = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL;
+  const configuredUrl = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_GATEWAY_API_BASE_URL;
+  return getBrowserSafeBaseUrl(configuredUrl, VERCEL_GATEWAY_API_PROXY_URL);
+}
 
+function getAuthApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_AUTH_API_BASE_URL ?? DEFAULT_AUTH_API_BASE_URL;
+  return getBrowserSafeBaseUrl(configuredUrl, VERCEL_GATEWAY_API_PROXY_URL);
+}
+
+function getUserApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_USER_API_BASE_URL ?? DEFAULT_USER_API_BASE_URL;
+  return getBrowserSafeBaseUrl(configuredUrl, VERCEL_GATEWAY_API_PROXY_URL);
+}
+
+function getVideoApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_VIDEO_API_BASE_URL ?? DEFAULT_VIDEO_API_BASE_URL;
+  return getBrowserSafeBaseUrl(configuredUrl, VERCEL_VIDEO_API_PROXY_URL);
+}
+
+function getBrowserSafeBaseUrl(configuredUrl: string, httpsProxyUrl: string) {
   if (typeof window !== 'undefined' && window.location.protocol === 'https:' && configuredUrl.startsWith('http:')) {
-    return VERCEL_API_PROXY_URL;
+    return httpsProxyUrl;
   }
 
   return configuredUrl;
@@ -30,9 +52,20 @@ export type AuthSession = {
   accessToken: string;
   refreshToken?: string;
   userId?: string | number;
+  email?: string;
+  nickname?: string;
 };
 
-export type VideoStatus = 'queued' | 'processing' | 'completed' | 'failed' | string;
+export type UserProfile = {
+  id: string | number;
+  email?: string;
+  nickname?: string;
+  raw: unknown;
+};
+
+export type VideoAnalysisType = 'DEEPFAKE' | 'T2V';
+
+export type VideoStatus = 'queued' | 'pending' | 'analyzing' | 'processing' | 'completed' | 'failed' | string;
 
 export type SuspiciousFrame = {
   frameIndex: number;
@@ -43,6 +76,7 @@ export type AnalysisResult = {
   final_verdict: string;
   deepfake_score?: number;
   t2v_score?: number;
+  xai_text?: string;
   suspicious_frames: SuspiciousFrame[];
   xai_heatmap_url?: string;
   per_frame_probs?: number[];
@@ -63,10 +97,11 @@ export type HistoryRecord = {
 
 type RequestOptions = RequestInit & {
   token?: string | null;
+  baseUrl?: string;
 };
 
-async function checkHealth(path: string, errorMessage: string): Promise<HealthCheckResult> {
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+async function checkHealth(baseUrl: string, path: string, errorMessage: string): Promise<HealthCheckResult> {
+  const response = await fetch(`${baseUrl}${path}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json, text/plain, */*',
@@ -88,35 +123,37 @@ async function checkHealth(path: string, errorMessage: string): Promise<HealthCh
 }
 
 export function checkAuthHealth() {
-  return checkHealth('/auth/health', 'auth health check failed');
+  return checkHealth(getAuthApiBaseUrl(), '/auth/health', 'auth health check failed');
 }
 
 export function checkUserHealth() {
-  return checkHealth('/user/health', 'user health check failed');
+  return checkHealth(getUserApiBaseUrl(), '/user/health', 'user health check failed');
 }
 
 export async function register(payload: AuthRegisterRequest) {
-  const data = await request<Record<string, unknown>>('/api/auth/register', {
+  const data = await request<Record<string, unknown>>('/auth/signup', {
     method: 'POST',
     body: JSON.stringify(payload),
+    baseUrl: getAuthApiBaseUrl(),
   });
 
   return {
     userId: readId(readFirst(data, ['user_id', 'userId', 'id'])),
-    message: readFirst(data, ['message']) ?? '회원가입이 완료되었습니다.',
+    message: readFirst(data, ['message']) ?? 'Signup successful',
     raw: data,
   };
 }
 
 export async function login(payload: AuthLoginRequest): Promise<AuthSession> {
-  const data = await request<Record<string, unknown>>('/api/auth/login', {
+  const data = await request<Record<string, unknown>>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(payload),
+    baseUrl: getAuthApiBaseUrl(),
   });
 
   const accessToken = readFirst(data, ['accessToken', 'access_token', 'token', 'jwt']);
   if (typeof accessToken !== 'string' || !accessToken) {
-    throw new Error('로그인 응답에서 토큰을 찾을 수 없습니다.');
+    throw new Error('Login response did not include an access token.');
   }
 
   const refreshToken = readFirst(data, ['refreshToken', 'refresh_token']);
@@ -124,6 +161,22 @@ export async function login(payload: AuthLoginRequest): Promise<AuthSession> {
     accessToken,
     refreshToken: typeof refreshToken === 'string' ? refreshToken : undefined,
     userId: readId(readFirst(data, ['user_id', 'userId', 'id'])),
+    email: readString(readFirst(data, ['email'])),
+    nickname: readString(readFirst(data, ['nickname'])),
+  };
+}
+
+export async function getUserById(id: string | number, token?: string | null): Promise<UserProfile> {
+  const data = await request<Record<string, unknown>>(`/user/${id}`, {
+    token,
+    baseUrl: getUserApiBaseUrl(),
+  });
+
+  return {
+    id: readId(readFirst(data, ['id', 'userId', 'user_id'])) ?? id,
+    email: readString(readFirst(data, ['email'])),
+    nickname: readString(readFirst(data, ['nickname'])),
+    raw: data,
   };
 }
 
@@ -142,43 +195,52 @@ export async function refreshAuthToken(refreshToken: string) {
 
   const accessToken = readFirst(data, ['accessToken', 'access_token', 'token', 'jwt']);
   if (typeof accessToken !== 'string' || !accessToken) {
-    throw new Error('토큰 갱신 응답에서 새 토큰을 찾을 수 없습니다.');
+    throw new Error('Token refresh response did not include an access token.');
   }
 
   return accessToken;
 }
 
-export async function uploadVideo(file: File, token?: string | null) {
+export async function uploadVideo(file: File, type: VideoAnalysisType, token?: string | null) {
   const formData = new FormData();
-  formData.append('video', file);
+  formData.append('type', type);
+  formData.append('file', file);
 
   const data = await request<Record<string, unknown>>('/api/videos/upload', {
     method: 'POST',
     body: formData,
     token,
+    baseUrl: getVideoApiBaseUrl(),
   });
 
   return readVideoId(data);
 }
 
-export async function requestVideoUrl(url: string, token?: string | null) {
+export async function requestVideoUrl(url: string, type: VideoAnalysisType, token?: string | null) {
   const data = await request<Record<string, unknown>>('/api/videos/url', {
     method: 'POST',
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, type }),
     token,
+    baseUrl: getVideoApiBaseUrl(),
   });
 
   return readVideoId(data);
 }
 
 export async function getVideoStatus(videoId: string, token?: string | null) {
-  const data = await request<Record<string, unknown>>(`/api/videos/${videoId}/status`, { token });
+  const data = await request<Record<string, unknown>>(`/api/videos/${videoId}/status`, {
+    token,
+    baseUrl: getVideoApiBaseUrl(),
+  });
   const status = readFirst(data, ['status']);
-  return typeof status === 'string' ? status : 'processing';
+  return typeof status === 'string' ? normalizeVideoStatus(status) : 'processing';
 }
 
 export async function getVideoResult(videoId: string, token?: string | null) {
-  const data = await request<unknown>(`/api/videos/${videoId}/result`, { token });
+  const data = await request<unknown>(`/api/videos/${videoId}/result`, {
+    token,
+    baseUrl: getVideoApiBaseUrl(),
+  });
   return normalizeAnalysisResult(data);
 }
 
@@ -201,9 +263,9 @@ export async function deleteHistoryRecord(id: string, token: string) {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { token, headers, body, ...rest } = options;
+  const { token, headers, body, baseUrl = getApiBaseUrl(), ...rest } = options;
   const isFormData = body instanceof FormData;
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     ...rest,
     body,
     headers: {
@@ -218,39 +280,39 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const data = text ? parseResponseBody(text) : null;
 
   if (!response.ok) {
-    const message = readErrorMessage(data) ?? `API 요청에 실패했습니다. (${response.status})`;
+    const message = readErrorMessage(data) ?? `API request failed. (${response.status})`;
     throw new Error(message);
   }
 
-  return data as T;
+  return unwrapApiResponse(data) as T;
 }
 
 function normalizeAnalysisResult(raw: unknown): AnalysisResult {
-  const root = asRecord(raw);
+  const root = asRecord(raw) ?? {};
   const deepfake = asRecord(readFirst(root, ['deepfake', 'deepfake_result', 'deepfakeResult'])) ?? root;
   const t2v = asRecord(readFirst(root, ['t2v', 't2v_result', 't2vResult'])) ?? root;
-  const evidence = asRecord(deepfake?.evidence);
+  const evidence = asRecord(deepfake.evidence);
   const heatmaps = asRecord(evidence?.heatmaps);
-  const t2vVisualization = asRecord(t2v?.xai_visualization);
+  const t2vVisualization = asRecord(t2v.xai_visualization);
   const t2vHeatmaps = t2vVisualization?.heatmaps;
   const t2vFirstHeatmap = Array.isArray(t2vHeatmaps) ? asRecord(t2vHeatmaps[0]) : undefined;
 
-  const deepfakeProb = readNumber(deepfake?.ensemble_prob);
-  const t2vProb = readNumber(t2v?.t2v_prob);
+  const deepfakeProb = readScore(readFirst(deepfake, ['deepfakeScore', 'deepfake_score', 'ensemble_prob']));
+  const t2vProb = readScore(readFirst(t2v, ['t2vScore', 't2v_score', 't2v_prob']));
   const finalVerdict = readVerdict(root, deepfake, t2v, deepfakeProb, t2vProb);
-  const suspectIndexes = toNumberArray(evidence?.suspect_frame_idx);
-  const suspectProbs = toNumberArray(evidence?.suspect_frame_prob);
+  const suspiciousFrames = readSuspiciousFrames(root, evidence);
 
   return {
     final_verdict: finalVerdict,
     deepfake_score: toPercent(deepfakeProb),
     t2v_score: toPercent(t2vProb),
-    suspicious_frames: suspectIndexes.map((frameIndex, index) => ({
-      frameIndex,
-      probability: suspectProbs[index],
-    })),
-    xai_heatmap_url: readString(heatmaps?.v7) ?? readString(t2vFirstHeatmap?.overlay_url),
-    per_frame_probs: toNumberArray(deepfake?.per_frame_probs),
+    xai_text: readString(readFirst(root, ['xaiText', 'xai_text'])),
+    suspicious_frames: suspiciousFrames,
+    xai_heatmap_url:
+      readString(readFirst(root, ['xaiHeatmapUrl', 'xai_heatmap_url'])) ??
+      readString(heatmaps?.v7) ??
+      readString(t2vFirstHeatmap?.overlay_url),
+    per_frame_probs: toNumberArray(readFirst(root, ['perFrameProbs', 'per_frame_probs']) ?? deepfake.per_frame_probs),
     raw,
   };
 }
@@ -277,10 +339,34 @@ function normalizeHistoryRecord(raw: unknown): HistoryRecord {
 function readVideoId(data: Record<string, unknown>) {
   const videoId = readFirst(data, ['video_id', 'videoId', 'id']);
   if (typeof videoId !== 'string' && typeof videoId !== 'number') {
-    throw new Error('영상 요청 응답에서 video_id를 찾을 수 없습니다.');
+    throw new Error('Video request response did not include a videoId.');
   }
 
   return String(videoId);
+}
+
+function readSuspiciousFrames(root: Record<string, unknown>, evidence: Record<string, unknown> | undefined): SuspiciousFrame[] {
+  const directFrames = readFirst(root, ['suspiciousFrames', 'suspicious_frames']);
+  if (Array.isArray(directFrames)) {
+    return directFrames
+      .map((item): SuspiciousFrame | undefined => {
+        const record = asRecord(item);
+        const frameIndex = readNumber(record?.frameIndex ?? record?.frame_index ?? item);
+        if (frameIndex === undefined) return undefined;
+        return {
+          frameIndex,
+          probability: readNumber(record?.probability ?? record?.prob ?? record?.score),
+        };
+      })
+      .filter((item): item is SuspiciousFrame => item !== undefined);
+  }
+
+  const suspectIndexes = toNumberArray(evidence?.suspect_frame_idx);
+  const suspectProbs = toNumberArray(evidence?.suspect_frame_prob);
+  return suspectIndexes.map((frameIndex, index) => ({
+    frameIndex,
+    probability: suspectProbs[index],
+  }));
 }
 
 function readId(value: unknown) {
@@ -289,20 +375,20 @@ function readId(value: unknown) {
 }
 
 function readVerdict(
-  root: Record<string, unknown> | undefined,
-  deepfake: Record<string, unknown> | undefined,
-  t2v: Record<string, unknown> | undefined,
+  root: Record<string, unknown>,
+  deepfake: Record<string, unknown>,
+  t2v: Record<string, unknown>,
   deepfakeProb?: number,
   t2vProb?: number,
 ) {
-  const explicit = readString(readFirst(root, ['final_verdict', 'verdict', 'decision']));
+  const explicit = readString(readFirst(root, ['finalVerdict', 'final_verdict', 'verdict', 'decision']));
   if (explicit) return explicit;
 
-  const deepfakeDecision = readString(deepfake?.decision);
-  const t2vDecision = readString(t2v?.decision);
-  if (isAiDecision(deepfakeDecision) || isAiDecision(t2vDecision)) return 'deepfake';
-  if ((deepfakeProb ?? 0) >= 0.5 || (t2vProb ?? 0) >= 0.5) return (t2vProb ?? 0) > (deepfakeProb ?? 0) ? 't2v' : 'deepfake';
-  return 'real';
+  const deepfakeDecision = readString(deepfake.decision);
+  const t2vDecision = readString(t2v.decision);
+  if (isAiDecision(deepfakeDecision) || isAiDecision(t2vDecision)) return 'FAKE';
+  if ((deepfakeProb ?? 0) >= 0.5 || (t2vProb ?? 0) >= 0.5) return 'FAKE';
+  return 'REAL';
 }
 
 function isAiDecision(value?: string) {
@@ -319,6 +405,12 @@ function toPercent(value?: number) {
 function toNumberArray(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value.map(readNumber).filter((item): item is number => typeof item === 'number');
+}
+
+function readScore(value: unknown) {
+  const number = readNumber(value);
+  if (number === undefined) return undefined;
+  return number > 1 ? number / 100 : number;
 }
 
 function readNumber(value: unknown) {
@@ -346,7 +438,24 @@ function readFirst(data: unknown, keys: string[]) {
 }
 
 function readErrorMessage(data: unknown) {
-  return readString(readFirst(data, ['message', 'error', 'detail']));
+  const rootMessage = readString(readFirst(data, ['message', 'error', 'detail']));
+  if (rootMessage) return rootMessage;
+  return readString(readFirst(asRecord(data)?.data, ['message', 'error', 'detail']));
+}
+
+function unwrapApiResponse(data: unknown) {
+  const record = asRecord(data);
+  if (!record || !('success' in record) || !('data' in record)) return data;
+  return record.data ?? record;
+}
+
+function normalizeVideoStatus(status: string): VideoStatus {
+  const normalized = status.toLowerCase();
+  if (normalized === 'pending') return 'pending';
+  if (normalized === 'analyzing') return 'analyzing';
+  if (normalized === 'completed') return 'completed';
+  if (normalized === 'failed') return 'failed';
+  return normalized;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

@@ -10,8 +10,8 @@ type VideoStoreState = {
   isSubmitting: boolean;
   isPolling: boolean;
   error: string | null;
-  submitVideoUrl: (url: string) => Promise<string>;
-  uploadVideoFile: (file: File) => Promise<string>;
+  submitVideoUrl: (url: string, type: api.VideoAnalysisType) => Promise<string>;
+  uploadVideoFile: (file: File, type: api.VideoAnalysisType) => Promise<string>;
   fetchStatus: (videoId?: string) => Promise<api.VideoStatus>;
   fetchResult: (videoId?: string) => Promise<api.AnalysisResult>;
   resetAnalysis: () => void;
@@ -26,10 +26,10 @@ export const useVideoStore = create<VideoStoreState>((set, get) => ({
   isSubmitting: false,
   isPolling: false,
   error: null,
-  submitVideoUrl: async (url) => {
+  submitVideoUrl: async (url, type) => {
     set({ isSubmitting: true, error: null, result: null, status: 'queued', targetLabel: url });
     try {
-      const videoId = await api.requestVideoUrl(url, getAccessToken());
+      const videoId = await api.requestVideoUrl(url, type, getAccessToken());
       set({ currentVideoId: videoId, status: 'queued', isSubmitting: false });
       return videoId;
     } catch (error) {
@@ -37,10 +37,10 @@ export const useVideoStore = create<VideoStoreState>((set, get) => ({
       throw error;
     }
   },
-  uploadVideoFile: async (file) => {
+  uploadVideoFile: async (file, type) => {
     set({ isSubmitting: true, error: null, result: null, status: 'queued', targetLabel: file.name });
     try {
-      const videoId = await api.uploadVideo(file, getAccessToken());
+      const videoId = await api.uploadVideo(file, type, getAccessToken());
       set({ currentVideoId: videoId, status: 'queued', isSubmitting: false });
       return videoId;
     } catch (error) {
@@ -49,7 +49,7 @@ export const useVideoStore = create<VideoStoreState>((set, get) => ({
     }
   },
   fetchStatus: async (videoId = get().currentVideoId ?? '') => {
-    if (!videoId) throw new Error('분석할 video_id가 없습니다.');
+    if (!videoId) throw new Error('Analysis videoId is missing.');
 
     set({ isPolling: true, error: null });
     try {
@@ -62,7 +62,7 @@ export const useVideoStore = create<VideoStoreState>((set, get) => ({
     }
   },
   fetchResult: async (videoId = get().currentVideoId ?? '') => {
-    if (!videoId) throw new Error('결과를 조회할 video_id가 없습니다.');
+    if (!videoId) throw new Error('Result videoId is missing.');
 
     set({ isPolling: true, error: null });
     try {
@@ -83,5 +83,5 @@ function getAccessToken() {
 }
 
 function toErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '영상 분석 요청 중 오류가 발생했습니다.';
+  return error instanceof Error ? error.message : 'Video analysis request failed.';
 }
