@@ -1,18 +1,21 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:userdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
     username: sa
     password:
+
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
+
+  sql:
+    init:
+      mode: never
 
   cloud:
     aws:
       s3:
-        enabled: true
         bucket: gachon-18-s3
       region:
         static: ap-northeast-2
@@ -20,3 +23,7 @@ spring:
 app:
   s3:
     base-folder: videos
+
+ai:
+  server:
+    base-url: http://localhost:60006
