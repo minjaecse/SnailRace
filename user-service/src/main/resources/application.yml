@@ -28,6 +28,7 @@ server:
 app:
   s3:
     base-folder: videos
+    presigned-url-expiration-minutes: 10
 
 ai:
   server:
