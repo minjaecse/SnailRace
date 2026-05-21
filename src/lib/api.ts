@@ -1,9 +1,8 @@
 const DEFAULT_GATEWAY_API_BASE_URL = 'http://43.200.145.225';
 const DEFAULT_AUTH_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const DEFAULT_USER_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
-const DEFAULT_VIDEO_API_BASE_URL = 'http://43.200.145.225:8081';
+const DEFAULT_VIDEO_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const VERCEL_GATEWAY_API_PROXY_URL = '/api/backend';
-const VERCEL_VIDEO_API_PROXY_URL = '/api/video-backend';
 
 export function getApiBaseUrl() {
   const configuredUrl = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_GATEWAY_API_BASE_URL;
@@ -22,7 +21,7 @@ function getUserApiBaseUrl() {
 
 function getVideoApiBaseUrl() {
   const configuredUrl = import.meta.env.VITE_VIDEO_API_BASE_URL ?? DEFAULT_VIDEO_API_BASE_URL;
-  return getBrowserSafeBaseUrl(configuredUrl, VERCEL_VIDEO_API_PROXY_URL);
+  return getBrowserSafeBaseUrl(configuredUrl, VERCEL_GATEWAY_API_PROXY_URL);
 }
 
 function getBrowserSafeBaseUrl(configuredUrl: string, httpsProxyUrl: string) {
@@ -64,6 +63,11 @@ export type UserProfile = {
 };
 
 export type VideoAnalysisType = 'DEEPFAKE' | 'T2V';
+
+export type PresignedUploadResponse = {
+  uploadUrl: string;
+  fileUrl: string;
+};
 
 export type VideoStatus = 'queued' | 'pending' | 'analyzing' | 'processing' | 'completed' | 'failed' | string;
 
@@ -202,18 +206,40 @@ export async function refreshAuthToken(refreshToken: string) {
 }
 
 export async function uploadVideo(file: File, type: VideoAnalysisType, token?: string | null) {
-  const formData = new FormData();
-  formData.append('type', type);
-  formData.append('file', file);
+  const contentType = file.type || 'application/octet-stream';
+  const { uploadUrl, fileUrl } = await createPresignedUploadUrl(file.name, contentType, token);
 
-  const data = await request<Record<string, unknown>>('/api/videos/upload', {
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': contentType,
+    },
+    body: file,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error(`S3 upload failed. (${uploadResponse.status})`);
+  }
+
+  return requestVideoUrl(fileUrl, type, token);
+}
+
+export async function createPresignedUploadUrl(fileName: string, contentType: string, token?: string | null) {
+  const data = await request<Record<string, unknown>>('/api/uploads/presigned-url', {
     method: 'POST',
-    body: formData,
+    body: JSON.stringify({ fileName, contentType }),
     token,
     baseUrl: getVideoApiBaseUrl(),
   });
 
-  return readVideoId(data);
+  const uploadUrl = readString(readFirst(data, ['uploadUrl', 'upload_url']));
+  const fileUrl = readString(readFirst(data, ['fileUrl', 'file_url']));
+
+  if (!uploadUrl || !fileUrl) {
+    throw new Error('Presigned URL response did not include uploadUrl and fileUrl.');
+  }
+
+  return { uploadUrl, fileUrl } satisfies PresignedUploadResponse;
 }
 
 export async function requestVideoUrl(url: string, type: VideoAnalysisType, token?: string | null) {
