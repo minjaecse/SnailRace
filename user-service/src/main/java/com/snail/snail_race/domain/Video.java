@@ -20,8 +20,13 @@ public class Video {
 
     private Long userId;
     private String fileName;
+
+    @Column(name = "file_path", columnDefinition = "text")
     private String filePath;
+
+    @Column(columnDefinition = "text")
     private String url;
+
     private String type;
     private String status;
     private LocalDateTime createdAt;
