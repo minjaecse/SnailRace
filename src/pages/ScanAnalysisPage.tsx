@@ -333,7 +333,7 @@ export default function ScanAnalysisPage() {
     const currentLabel = targetLabel;
     resetAnalysis();
     try {
-      await submitVideoUrl(currentLabel, newModel as any);
+      await submitVideoUrl(currentLabel, newModel === 'T2V' ? 'T2V' : 'DEEPFAKE');
     } catch (e) { console.error(e); }
   };
 
