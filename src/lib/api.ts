@@ -1,11 +1,11 @@
-const DEFAULT_GATEWAY_API_BASE_URL = "";
+const DEFAULT_GATEWAY_API_BASE_URL = "/api/backend";
 const DEFAULT_AUTH_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const DEFAULT_USER_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const DEFAULT_VIDEO_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const VERCEL_GATEWAY_API_PROXY_URL = '/api/backend';
 
 export function getApiBaseUrl() {
-  const configuredUrl = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_GATEWAY_API_BASE_URL;
+  const configuredUrl = DEFAULT_GATEWAY_API_BASE_URL;
   return getBrowserSafeBaseUrl(configuredUrl, VERCEL_GATEWAY_API_PROXY_URL);
 }
 
