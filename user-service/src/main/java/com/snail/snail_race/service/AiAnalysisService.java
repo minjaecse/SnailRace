@@ -67,10 +67,14 @@ public class AiAnalysisService {
         } catch (RestClientResponseException e) {
             log.error("[AI] HTTP error (DEEPFAKE): videoId={}, status={}, statusText={}, body={}",
                     video.getId(), e.getStatusCode().value(), e.getStatusText(), e.getResponseBodyAsString());
+            saveFailureResult(video, "DEEPFAKE",
+                    "AI HTTP error: status=" + e.getStatusCode().value() + ", body=" + e.getResponseBodyAsString());
             video.setStatus("FAILED");
         } catch (Exception e) {
             log.error("[AI] Network/unexpected error (DEEPFAKE): videoId={}, exceptionType={}, message={}",
                     video.getId(), e.getClass().getSimpleName(), e.getMessage(), e);
+            saveFailureResult(video, "DEEPFAKE",
+                    "AI request failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
             video.setStatus("FAILED");
         }
     }
@@ -138,10 +142,14 @@ public class AiAnalysisService {
         } catch (RestClientResponseException e) {
             log.error("[AI] HTTP error (T2V): videoId={}, status={}, statusText={}, body={}",
                     video.getId(), e.getStatusCode().value(), e.getStatusText(), e.getResponseBodyAsString());
+            saveFailureResult(video, "T2V",
+                    "AI HTTP error: status=" + e.getStatusCode().value() + ", body=" + e.getResponseBodyAsString());
             video.setStatus("FAILED");
         } catch (Exception e) {
             log.error("[AI] Network/unexpected error (T2V): videoId={}, exceptionType={}, message={}",
                     video.getId(), e.getClass().getSimpleName(), e.getMessage(), e);
+            saveFailureResult(video, "T2V",
+                    "AI request failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
             video.setStatus("FAILED");
         }
     }
@@ -198,6 +206,22 @@ public class AiAnalysisService {
     private Result findOrCreateResult(Video video) {
         return resultRepository.findByVideo_Id(video.getId())
                 .orElse(Result.builder().video(video).build());
+    }
+
+    private void saveFailureResult(Video video, String analysisType, String failureMessage) {
+        Result result = findOrCreateResult(video);
+        result.setFinalVerdict("FAILED");
+        if ("DEEPFAKE".equalsIgnoreCase(analysisType)) {
+            result.setDeepfakeScore(null);
+            result.setT2vScore(null);
+        } else if ("T2V".equalsIgnoreCase(analysisType)) {
+            result.setDeepfakeScore(null);
+            result.setT2vScore(null);
+        }
+        result.setXaiText(failureMessage);
+        result.setXaiHeatmapUrl(null);
+        result.setSuspiciousFrames(null);
+        resultRepository.save(result);
     }
 
     private String toJson(Object obj) {
