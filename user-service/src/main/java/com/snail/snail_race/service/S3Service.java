@@ -81,7 +81,7 @@ public class S3Service {
                     .url()
                     .toString();
 
-            return new PresignedUrlResponse(uploadUrl, buildFileUrl(key));
+            return new PresignedUrlResponse(forceHttps(uploadUrl), buildFileUrl(key));
         }
     }
 
@@ -105,5 +105,12 @@ public class S3Service {
 
     private String buildFileUrl(String key) {
         return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + key;
+    }
+
+    private String forceHttps(String url) {
+        if (url != null && url.startsWith("http://")) {
+            return "https://" + url.substring("http://".length());
+        }
+        return url;
     }
 }
