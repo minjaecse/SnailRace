@@ -212,16 +212,21 @@ export async function refreshAuthToken(refreshToken: string) {
 }
 
 export async function uploadVideo(file: File, type: VideoAnalysisType, token?: string | null) {
-  const contentType = file.type || 'video/mp4';
+  const contentType = getUploadContentType(file);
   const { uploadUrl, fileUrl } = await createPresignedUploadUrl(file.name, contentType, token);
 
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': contentType,
-    },
-    body: file,
-  });
+  let uploadResponse: Response;
+  try {
+    uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+      },
+      body: file,
+    });
+  } catch (error) {
+    throw new Error('S3 upload request was blocked or failed. Check S3 CORS for the Vercel domain and localhost.');
+  }
 
   if (!uploadResponse.ok) {
     throw new Error(`S3 upload failed. (${uploadResponse.status})`);
@@ -246,6 +251,21 @@ export async function createPresignedUploadUrl(fileName: string, contentType: st
   }
 
   return { uploadUrl, fileUrl } satisfies PresignedUploadResponse;
+}
+
+function getUploadContentType(file: File) {
+  const browserType = file.type;
+  if (browserType && browserType !== 'application/octet-stream') {
+    return browserType;
+  }
+
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  if (extension === 'mp4' || extension === 'm4v') return 'video/mp4';
+  if (extension === 'mov') return 'video/quicktime';
+  if (extension === 'webm') return 'video/webm';
+  if (extension === 'avi') return 'video/x-msvideo';
+
+  return 'video/mp4';
 }
 
 export async function requestVideoUrl(url: string, type: VideoAnalysisType, token?: string | null) {
