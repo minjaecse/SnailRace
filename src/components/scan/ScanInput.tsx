@@ -1,22 +1,17 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import type { VideoAnalysisType } from '../../lib/api';
+import type { VideoAnalysisType } from '../../lib/api';
 import { useVideoStore } from '../../stores/videoStore';
 import styles from './ScanInput.module.css';
 
-
-  const DESCRIPTIONS = {
-    RYZE: "고전 딥페이크(FF++, DFDC) 특화 모델입니다.",
-    LEE_SIN: "찰나의 조작도 잡아내는 공격적 탐지 모드입니다.",
-    SHEN: "오늘 실험 1위! 가장 정확한 밸런스형 모델입니다.",
-    RAMMUS: "확실한 조작만 잡아내는 보수적 방어 모드입니다.",
-    T2V: "생성형 AI(Text-to-Video) 전용 탐지 엔진입니다."
-  };
+const DESCRIPTIONS: Record<VideoAnalysisType, string> = {
+  DEEPFAKE: 'Detects manipulated or synthetic video content.',
+  T2V: 'Detects AI-generated text-to-video content.',
+};
 
 export default function ScanInput() {
   const [url, setUrl] = useState('');
-  const [category, setCategory] = useState<'DEEPFAKE' | 'T2V'>('DEEPFAKE');
-  const [subModel, setSubModel] = useState<'RYZE' | 'LEE_SIN' | 'SHEN' | 'RAMMUS'>('SHEN');
+  const [analysisType, setAnalysisType] = useState<VideoAnalysisType>('DEEPFAKE');
   const [agreed, setAgreed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -25,21 +20,23 @@ export default function ScanInput() {
   const handleScan = async () => {
     if (!agreed || !url.trim() || isSubmitting) return;
     try {
-      await submitVideoUrl(url.trim(), category === 'T2V' ? 'T2V' : subModel);
+      await submitVideoUrl(url.trim(), analysisType);
       navigate('/scan/analysis');
     } catch {
-      // Managed by store
+      // Error message is managed by the video store.
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file || !agreed || isSubmitting) return;
+
     try {
-      await uploadVideoFile(file, category === 'T2V' ? 'T2V' : subModel);
+      await uploadVideoFile(file, analysisType);
       navigate('/scan/analysis');
     } catch {
-      // Managed by store
+      // Error message is managed by the video store.
     }
   };
 
@@ -74,54 +71,29 @@ export default function ScanInput() {
           </svg>
         </button>
       </div>
+
       <div className={styles.actionRow}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-          {/* Category Toggle */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
           <div className={styles.typeGroup} style={{ marginBottom: 0 }}>
-            {['DEEPFAKE', 'T2V'].map((cat) => (
+            {(['DEEPFAKE', 'T2V'] as VideoAnalysisType[]).map((type) => (
               <button
-                key={cat}
+                key={type}
                 type="button"
-                className={styles.typeButton + (category === cat ? " " + styles.typeButtonActive : "")}
-                onClick={() => setCategory(cat as any)}
+                className={`${styles.typeButton} ${analysisType === type ? styles.typeButtonActive : ''}`}
+                onClick={() => setAnalysisType(type)}
               >
-                {cat}
+                {type}
               </button>
             ))}
           </div>
 
-          {/* Sub-Model selection for Deepfake */}
-          {category === 'DEEPFAKE' && (
-            <div style={{ display: 'flex', gap: '8px', padding: '10px', background: 'rgba(0,0,0,0.03)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
-              {['RYZE', 'LEE_SIN', 'SHEN', 'RAMMUS'].map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setSubModel(m as any)}
-                  style={{
-                    flex: 1,
-                    padding: '6px 4px',
-                    fontSize: '0.65rem',
-                    borderRadius: '8px',
-                    border: '1px solid ' + (subModel === m ? 'var(--accent-blue)' : 'transparent'),
-                    background: subModel === m ? 'var(--accent-blue)' : 'transparent',
-                    color: subModel === m ? '#fff' : 'var(--text-muted)',
-                    cursor: 'pointer',
-                    fontWeight: subModel === m ? 700 : 400,
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          )}
+          <div style={{ padding: '8px 12px', background: 'rgba(0, 3, 255, 0.05)', borderRadius: '8px', borderLeft: '3px solid var(--accent-blue)' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-main)', margin: 0, fontWeight: 500 }}>
+              {DESCRIPTIONS[analysisType]}
+            </p>
+          </div>
         </div>
-        <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(0, 3, 255, 0.05)', borderRadius: '8px', borderLeft: '3px solid var(--accent-blue)' }}>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-main)', margin: 0, fontWeight: 500 }}>
-            💡 {category === 'T2V' ? DESCRIPTIONS.T2V : DESCRIPTIONS[subModel]}
-          </p>
-        </div>
+
         <label className={styles.consent}>
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
           I agree to terms of analysis

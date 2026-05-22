@@ -62,7 +62,7 @@ export type UserProfile = {
   raw: unknown;
 };
 
-export type VideoAnalysisType = 'DEEPFAKE' | 'T2V' | 'RYZE' | 'LEE_SIN' | 'SHEN' | 'RAMMUS';
+export type VideoAnalysisType = 'DEEPFAKE' | 'T2V';
 
 export type PresignedUploadResponse = {
   uploadUrl: string;
@@ -212,7 +212,7 @@ export async function refreshAuthToken(refreshToken: string) {
 }
 
 export async function uploadVideo(file: File, type: VideoAnalysisType, token?: string | null) {
-  const contentType = file.type || 'application/octet-stream';
+  const contentType = file.type || 'video/mp4';
   const { uploadUrl, fileUrl } = await createPresignedUploadUrl(file.name, contentType, token);
 
   const uploadResponse = await fetch(uploadUrl, {
