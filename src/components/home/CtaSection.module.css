@@ -1,5 +1,5 @@
 .cta {
-  background: var(--text-main);
+  background: linear-gradient(135deg, #0003FF 0%, #0001CC 100%);
   color: var(--bg-white);
   text-align: center;
   padding: 120px 0;
@@ -32,12 +32,30 @@
 }
 
 .dot {
-  color: var(--accent-blue);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+
+.tag {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .desc {
-  color: #A1A1A6;
-  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 2rem;
 }
 
 .highlight {
@@ -49,7 +67,7 @@
 .footer {
   margin-top: 2rem;
   font-size: 0.875rem;
-  color: #6E6E73;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 @media (max-width: 768px) {

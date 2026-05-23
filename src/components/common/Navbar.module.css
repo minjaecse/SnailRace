@@ -13,7 +13,25 @@
   align-items: center;
 }
 
-.navLinks a {
+.navCenter {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.navActions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.navLinks a,
+.navCenter a,
+.navActions a {
   color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
@@ -21,6 +39,8 @@
   transition: color 0.2s;
 }
 
-.navLinks a:hover {
+.navLinks a:hover,
+.navCenter a:hover,
+.navActions a:hover {
   color: var(--text-main);
 }

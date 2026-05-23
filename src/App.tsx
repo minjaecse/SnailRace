@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import ScanPage from './pages/ScanPage';
 import ScanAnalysisPage from './pages/ScanAnalysisPage';
 import HomePage from './pages/HomePage';
+import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import WaitlistPage from './pages/WaitlistPage';
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/" element={<ScanPage />} />
       <Route path="/scan/analysis" element={<ScanAnalysisPage />} />
       <Route path="/home" element={<HomePage />} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />

@@ -12,23 +12,25 @@ export default function Navbar({ variant = 'scan' }: NavbarProps) {
     <Container>
       <header className={styles.header}>
         <Logo />
-        <nav className={styles.navLinks}>
-          {variant === 'home' ? (
-            <>
+        {variant === 'home' ? (
+          <>
+            <nav className={styles.navCenter}>
+              <a href="#s2-problem">About</a>
+              <Link to="/contact">Contact</Link>
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </nav>
+            <nav className={styles.navActions}>
               <Link to="/">Scan</Link>
               <Link to="/login">Login</Link>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
-              <a href="#s2-problem">About</a>
-              <a href="#s4-cta">Contact</a>
-            </>
-          ) : (
-            <>
-              <Link to="/home">Home</Link>
-              <Link to="/login">Login</Link>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
-            </>
-          )}
-        </nav>
+            </nav>
+          </>
+        ) : (
+          <nav className={styles.navLinks}>
+            <Link to="/home">Home</Link>
+            <Link to="/login">Login</Link>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </nav>
+        )}
       </header>
     </Container>
   );

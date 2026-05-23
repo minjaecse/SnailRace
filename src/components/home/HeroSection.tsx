@@ -13,22 +13,21 @@ export default function HeroSection() {
         <div className={styles.grid}>
           <div className={styles.text}>
             <h2 className={styles.title}>
-              Detect What Your Eyes Can't<span className={styles.dot}>.</span>
+              Is That Video Real<span className={styles.dot}>?</span>
             </h2>
             <p className={styles.korSub}>
-              사람의 눈으로는 더 이상 구별할 수 없습니다.
-              <br />
-              AI가 만든 영상, AI가 찾아냅니다.
+              딥페이크 영상 여부를 지금 바로 확인하세요.
             </p>
             <p className={styles.desc}>
-              CNN-LSTM 시간축 분석 + Grad-CAM 시각적 설명까지. 결과만 던지지 않습니다 — '왜 가짜인지' 보여드립니다.
+              URL이나 파일을 올리면 됩니다.<br />
+              기술적인 지식 없이도 누구나, 무료로 바로 사용할 수 있습니다.
             </p>
             <div className={styles.actions}>
               <Button variant="dark" onClick={() => navigate('/')}>
                 지금 바로 분석하기
               </Button>
               <Button variant="outline" onClick={() => {
-                document.getElementById('s3-services')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('s2-problem')?.scrollIntoView({ behavior: 'smooth' });
               }}>
                 서비스 소개 보기
               </Button>

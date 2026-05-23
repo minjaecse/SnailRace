@@ -16,3 +16,4 @@ xai_results/
 xai_test/
 test_client/
 test_inputs/
+.DS_Store
