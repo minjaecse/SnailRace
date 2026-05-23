@@ -40,10 +40,10 @@ export default function LoginPage() {
             <span>Solomon AI</span>
           </Link>
 
-          <h1>Log In</h1>
+          <h1>로그인</h1>
           <p className={styles.subtitle}>
-            Don't have an account?{' '}
-            <Link to="/register" className={styles.link}>Sign up for free</Link>
+            계정이 없으신가요?{' '}
+            <Link to="/register" className={styles.link}>회원가입</Link>
           </p>
           <p className={styles.subtitle} style={{ marginTop: 4 }}>
             <Link to="/find-id" className={styles.link} style={{ fontSize: '0.8rem' }}>아이디 찾기</Link>
@@ -54,7 +54,7 @@ export default function LoginPage() {
         <form className={styles.form} onSubmit={handleSubmit}>
           {/* Email */}
           <div className={styles.field}>
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">이메일</label>
             <div className={styles.inputWrapper}>
               <div className={styles.inputIcon}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -75,7 +75,7 @@ export default function LoginPage() {
 
           {/* Password */}
           <div className={styles.field}>
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">비밀번호</label>
             <div className={styles.inputWrapper}>
               <div className={styles.inputIcon}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -113,13 +113,13 @@ export default function LoginPage() {
               </button>
             </div>
             <div className={styles.forgotRow}>
-              <Link to="/find-password" className={styles.forgotLink}>Forgot your password?</Link>
+              <Link to="/find-password" className={styles.forgotLink}>비밀번호를 잊으셨나요?</Link>
             </div>
           </div>
 
           {/* Submit */}
           <button type="submit" className={styles.submitBtn}>
-            {status === 'loading' ? 'Logging in...' : 'Log In'}
+            {status === 'loading' ? '로그인 중...' : '로그인'}
           </button>
           {error && <p className={styles.subtitle}>{error}</p>}
         </form>
