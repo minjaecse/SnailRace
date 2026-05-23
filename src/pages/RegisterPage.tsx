@@ -37,22 +37,22 @@ export default function RegisterPage() {
             <span>Solomon AI</span>
           </Link>
 
-          <h1>Create an account</h1>
-          <p className={ls.subtitle}>Join Solomon AI to start analyzing</p>
+          <h1>회원가입</h1>
+          <p className={ls.subtitle}>Solomon AI로 영상 분석을 시작하세요</p>
         </div>
 
         <form className={ls.form} onSubmit={handleSubmit}>
           <div className={s.formGroup}>
-            <label htmlFor="name" className={s.formLabel}>Full Name</label>
+            <label htmlFor="name" className={s.formLabel}>이름</label>
             <input
               type="text" id="name" className={s.formInput}
-              placeholder="Enter your full name" required
+              placeholder="이름을 입력하세요" required
               value={name} onChange={(e) => setName(e.target.value)}
             />
           </div>
 
           <div className={s.formGroup}>
-            <label htmlFor="email" className={s.formLabel}>Email Address</label>
+            <label htmlFor="email" className={s.formLabel}>이메일</label>
             <input
               type="email" id="email" className={s.formInput}
               placeholder="name@example.com" required
@@ -61,10 +61,10 @@ export default function RegisterPage() {
           </div>
 
           <div className={s.formGroup}>
-            <label htmlFor="password" className={s.formLabel}>Password</label>
+            <label htmlFor="password" className={s.formLabel}>비밀번호</label>
             <input
               type="password" id="password" className={s.formInput}
-              placeholder="Create a password" required
+              placeholder="비밀번호를 입력하세요" required
               value={password} onChange={(e) => setPassword(e.target.value)}
             />
           </div>
@@ -75,18 +75,18 @@ export default function RegisterPage() {
               checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
             />
             <span className={s.checkboxLabel}>
-              I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a> of Solomon AI.
+              Solomon AI의 <a href="#">이용약관</a> 및 <a href="#">개인정보처리방침</a>에 동의합니다.
             </span>
           </label>
 
           <button type="submit" className={ls.submitBtn} disabled={status === 'loading'}>
-            {status === 'loading' ? 'Creating...' : 'Sign Up'}
+            {status === 'loading' ? '처리 중...' : '회원가입'}
           </button>
           {error && <p className={ls.subtitle}>{error}</p>}
         </form>
 
         <div className={s.authFooter}>
-          Already have an account? <Link to="/login">Log in</Link>
+          이미 계정을 가지고 계신가요? <Link to="/login">로그인</Link>
         </div>
       </div>
     </div>
