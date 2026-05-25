@@ -31,7 +31,8 @@
 
 .navLinks a,
 .navCenter a,
-.navActions a {
+.navActions a,
+.navButton {
   color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
@@ -39,8 +40,17 @@
   transition: color 0.2s;
 }
 
+.navButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-main);
+}
+
 .navLinks a:hover,
 .navCenter a:hover,
-.navActions a:hover {
+.navActions a:hover,
+.navButton:hover {
   color: var(--text-main);
 }
