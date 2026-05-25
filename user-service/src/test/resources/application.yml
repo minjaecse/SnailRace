@@ -27,3 +27,6 @@ app:
 ai:
   server:
     base-url: http://localhost:60006
+
+jwt:
+  secret: secret-key-at-least-32-characters-long-12345678901234567890

@@ -1,14 +1,19 @@
 package com.snail.snail_race.service;
 
 import com.snail.snail_race.domain.Video;
+import com.snail.snail_race.domain.Result;
+import com.snail.snail_race.dto.VideoHistoryResponse;
 import com.snail.snail_race.dto.VideoUploadResponse;
 import com.snail.snail_race.exception.VideoNotFoundException;
+import com.snail.snail_race.repository.ResultRepository;
 import com.snail.snail_race.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -17,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class VideoService {
 
     private final VideoRepository videoRepository;
+    private final ResultRepository resultRepository;
     private final S3Service s3Service;
     private final AiAnalysisService aiAnalysisService;
 
@@ -86,5 +92,28 @@ public class VideoService {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new VideoNotFoundException(videoId));
         return new VideoUploadResponse(video.getId(), video.getStatus());
+    }
+
+    @Transactional(readOnly = true)
+    public List<VideoHistoryResponse> getMyVideoHistory(Long userId) {
+        return videoRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(this::toVideoHistoryResponse)
+                .toList();
+    }
+
+    private VideoHistoryResponse toVideoHistoryResponse(Video video) {
+        Result result = resultRepository.findByVideo_Id(video.getId()).orElse(null);
+
+        return new VideoHistoryResponse(
+                video.getId(),
+                video.getType(),
+                video.getStatus(),
+                video.getFileName(),
+                video.getUrl(),
+                video.getCreatedAt(),
+                result != null ? result.getFinalVerdict() : null,
+                result != null ? result.getDeepfakeScore() : null,
+                result != null ? result.getT2vScore() : null
+        );
     }
 }

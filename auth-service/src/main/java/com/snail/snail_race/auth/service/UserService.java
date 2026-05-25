@@ -43,10 +43,11 @@ public class UserService {
             throw new RuntimeException("Invalid password");
         }
 
-        String token = jwtProvider.createToken(user.getEmail());
+        String token = jwtProvider.createToken(user.getId(), user.getEmail());
 
         return LoginResponse.builder()
                 .accessToken(token)
+                .userId(user.getId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .build();
