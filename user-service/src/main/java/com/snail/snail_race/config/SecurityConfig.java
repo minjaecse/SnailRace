@@ -38,11 +38,11 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder(
-            @Value("${jwt.secret:secret-key-at-least-32-characters-long-123456}") String secretKey
+            @Value("${jwt.secret:secret-key-at-least-32-characters-long-12345678901234567890}") String secretKey
     ) {
-        SecretKey key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        SecretKey key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA384");
         return NimbusJwtDecoder.withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS256)
+                .macAlgorithm(MacAlgorithm.HS384)
                 .build();
     }
 
