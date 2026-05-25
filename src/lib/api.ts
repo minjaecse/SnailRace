@@ -102,6 +102,8 @@ export type HistoryRecord = {
   thumb?: string;
   duration?: string;
   size?: string;
+  type?: VideoAnalysisType | string;
+  status?: VideoStatus;
   raw: unknown;
 };
 
@@ -212,27 +214,18 @@ export async function refreshAuthToken(refreshToken: string) {
 }
 
 export async function uploadVideo(file: File, type: VideoAnalysisType, token?: string | null) {
-  const contentType = getUploadContentType(file);
-  const { uploadUrl, fileUrl } = await createPresignedUploadUrl(file.name, contentType, token);
+  const formData = new FormData();
+  formData.append('type', type);
+  formData.append('file', file);
 
-  let uploadResponse: Response;
-  try {
-    uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': contentType,
-      },
-      body: file,
-    });
-  } catch (error) {
-    throw new Error('S3 upload request was blocked or failed. Check S3 CORS for the Vercel domain and localhost.');
-  }
+  const data = await request<Record<string, unknown>>('/api/videos/upload', {
+    method: 'POST',
+    body: formData,
+    token,
+    baseUrl: getVideoApiBaseUrl(),
+  });
 
-  if (!uploadResponse.ok) {
-    throw new Error(`S3 upload failed. (${uploadResponse.status})`);
-  }
-
-  return requestVideoUrl(fileUrl, type, token);
+  return readVideoId(data);
 }
 
 export async function createPresignedUploadUrl(fileName: string, contentType: string, token?: string | null) {
@@ -246,26 +239,11 @@ export async function createPresignedUploadUrl(fileName: string, contentType: st
   const uploadUrl = readString(readFirst(data, ['uploadUrl', 'upload_url']));
   const fileUrl = readString(readFirst(data, ['fileUrl', 'file_url']));
 
-  if (!uploadUrl || !fileUrl) {
-    throw new Error('Presigned URL response did not include uploadUrl and fileUrl.');
+  if (!uploadUrl) {
+    throw new Error('Presigned URL response did not include uploadUrl.');
   }
 
-  return { uploadUrl, fileUrl } satisfies PresignedUploadResponse;
-}
-
-function getUploadContentType(file: File) {
-  const browserType = file.type;
-  if (browserType && browserType !== 'application/octet-stream') {
-    return browserType;
-  }
-
-  const extension = file.name.split('.').pop()?.toLowerCase();
-  if (extension === 'mp4' || extension === 'm4v') return 'video/mp4';
-  if (extension === 'mov') return 'video/quicktime';
-  if (extension === 'webm') return 'video/webm';
-  if (extension === 'avi') return 'video/x-msvideo';
-
-  return 'video/mp4';
+  return { uploadUrl, fileUrl: fileUrl ?? uploadUrl } satisfies PresignedUploadResponse;
 }
 
 export async function requestVideoUrl(url: string, type: VideoAnalysisType, token?: string | null) {
@@ -297,14 +275,17 @@ export async function getVideoResult(videoId: string, token?: string | null) {
 }
 
 export async function getHistory(token: string) {
-  const data = await request<unknown>('/api/history', { token });
+  const data = await request<unknown>('/api/videos/my', {
+    token,
+    baseUrl: getVideoApiBaseUrl(),
+  });
   const list = Array.isArray(data) ? data : readFirst(data, ['records', 'history', 'items', 'data']);
   return Array.isArray(list) ? list.map(normalizeHistoryRecord) : [];
 }
 
 export async function getHistoryDetail(id: string, token: string) {
-  const data = await request<unknown>(`/api/history/${id}`, { token });
-  return normalizeHistoryRecord(data);
+  const result = await getVideoResult(id, token);
+  return normalizeHistoryRecord(result.raw);
 }
 
 export async function deleteHistoryRecord(id: string, token: string) {
@@ -366,11 +347,11 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
       readString(t2vFirstHeatmap?.overlay_url),
     per_frame_probs: toNumberArray(readFirst(root, ['perFrameProbs', 'per_frame_probs']) ?? deepfake.per_frame_probs),
     analysis_type: readString(readFirst(root, ['analysis_type'])), engine_label: readString(readFirst(root, ['engine_label'])),
-    original_face_url: readString(readFirst(root.raw || {}, ['original_face_url'])),
-    rgb_contribution: readNumber(readFirst(root.raw || {}, ['rgb_contribution'])),
-    freq_contribution: readNumber(readFirst(root.raw || {}, ['freq_contribution'])),
-    top_regions: readFirst(root.raw || {}, ['top_regions']) as any,
-    forensic_report: readString(readFirst(root.raw || {}, ['forensic_report'])),
+    original_face_url: readString(readFirst(root, ['original_face_url'])),
+    rgb_contribution: readNumber(readFirst(root, ['rgb_contribution'])),
+    freq_contribution: readNumber(readFirst(root, ['freq_contribution'])),
+    top_regions: readFirst(root, ['top_regions']) as any,
+    forensic_report: readString(readFirst(root, ['forensic_report', 'xai_text'])),
     raw,
   };
 }
@@ -378,8 +359,9 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
 function normalizeHistoryRecord(raw: unknown): HistoryRecord {
   const record = asRecord(raw) ?? {};
   const result = String(readFirst(record, ['result', 'verdict', 'final_verdict']) ?? '').toUpperCase();
-  const score = readNumber(readFirst(record, ['percentage', 'score', 'deepfake_score', 'probability']));
+  const score = readNumber(readFirst(record, ['percentage', 'score', 'deepfake_score', 't2v_score', 'probability']));
   const id = String(readFirst(record, ['id', 'history_id', 'video_id']) ?? '');
+  const status = readString(readFirst(record, ['status']));
 
   return {
     id,
@@ -390,6 +372,8 @@ function normalizeHistoryRecord(raw: unknown): HistoryRecord {
     thumb: readString(readFirst(record, ['thumb', 'thumbnail', 'thumbnail_url'])),
     duration: readString(record.duration),
     size: readString(record.size),
+    type: readString(readFirst(record, ['type', 'analysis_type'])),
+    status: status ? normalizeVideoStatus(status) : undefined,
     raw,
   };
 }

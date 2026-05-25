@@ -701,7 +701,7 @@ export default function ScanAnalysisPage() {
 
               {/* 4. Forensic Report */}
               <div style={{ marginTop: '20px', padding: '18px', background: verdict === 'FAKE' ? '#fff1f0' : '#f6ffed', border: '1px solid ' + (verdict === 'FAKE' ? '#ffa39e' : '#b7eb8f'), borderLeft: '5px solid ' + (verdict === 'FAKE' ? '#ff4d4f' : '#52c41a'), borderRadius: '8px', fontSize: '0.9rem', color: verdict === 'FAKE' ? '#820014' : '#135200', lineHeight: '1.6', fontWeight: '500', wordBreak: 'keep-all' }}>
-                {result?.forensic_report || 'Generating forensic summary...'}
+                {result?.xai_text || result?.forensic_report || 'Generating forensic summary...'}
               </div>
             </div>
 
