@@ -16,7 +16,7 @@ public class JwtProvider {
     private final long validityInMilliseconds;
 
     public JwtProvider(
-            @Value("${jwt.secret:secret-key-at-least-32-characters-long-123456}") String secretKey,
+            @Value("${jwt.secret:secret-key-at-least-32-characters-long-12345678901234567890}") String secretKey,
             @Value("${jwt.expiration:3600000}") long validityInMilliseconds) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         this.validityInMilliseconds = validityInMilliseconds;
@@ -31,7 +31,7 @@ public class JwtProvider {
                 .claim("userId", userId)
                 .issuedAt(now)
                 .expiration(validity)
-                .signWith(key)
+                .signWith(key, Jwts.SIG.HS384)
                 .compact();
     }
 
