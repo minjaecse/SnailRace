@@ -97,7 +97,7 @@ export type HistoryRecord = {
   id: string;
   title: string;
   date: string;
-  result: 'FAKE' | 'REAL';
+  result: 'FAKE' | 'REAL' | 'UNKNOWN';
   percentage: string;
   thumb?: string;
   duration?: string;
@@ -362,20 +362,30 @@ function normalizeHistoryRecord(raw: unknown): HistoryRecord {
   const score = readNumber(readFirst(record, ['percentage', 'score', 'deepfake_score', 't2v_score', 'probability']));
   const id = String(readFirst(record, ['id', 'history_id', 'video_id']) ?? '');
   const status = readString(readFirst(record, ['status']));
+  const type = readString(readFirst(record, ['type', 'analysis_type']));
+  const fileName = readString(readFirst(record, ['title', 'filename', 'file_name']));
+  const url = readString(readFirst(record, ['url']));
 
   return {
     id,
-    title: String(readFirst(record, ['title', 'filename', 'file_name', 'url']) ?? `analysis-${id || 'record'}`),
+    title: fileName ?? url ?? `analysis-${id || 'record'}`,
     date: String(readFirst(record, ['date', 'created_at', 'createdAt']) ?? ''),
-    result: result.includes('FAKE') || result.includes('DEEPFAKE') || result.includes('T2V') ? 'FAKE' : 'REAL',
+    result: readHistoryResult(result, status),
     percentage: typeof score === 'number' ? `${score > 1 ? score.toFixed(1) : (score * 100).toFixed(1)}%` : '',
     thumb: readString(readFirst(record, ['thumb', 'thumbnail', 'thumbnail_url'])),
     duration: readString(record.duration),
     size: readString(record.size),
-    type: readString(readFirst(record, ['type', 'analysis_type'])),
+    type,
     status: status ? normalizeVideoStatus(status) : undefined,
     raw,
   };
+}
+
+function readHistoryResult(result: string, status?: string) {
+  if (result.includes('FAKE') || result.includes('DEEPFAKE') || result.includes('T2V')) return 'FAKE';
+  if (result.includes('REAL') || result.includes('NORMAL') || result.includes('AUTHENTIC')) return 'REAL';
+  if (status?.toLowerCase() === 'completed') return 'UNKNOWN';
+  return 'UNKNOWN';
 }
 
 function readVideoId(data: Record<string, unknown>) {

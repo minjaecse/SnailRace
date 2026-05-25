@@ -1,122 +1,44 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import s from './HistoryPage.module.css';
 import AuthBackground from '../components/common/AuthBackground';
 import { useAuthStore } from '../stores/authStore';
 import { useHistoryStore } from '../stores/historyStore';
+import type { HistoryRecord } from '../lib/api';
 
-interface HistoryRecord {
-  id: string;
-  thumb: string;
-  duration: string;
-  title: string;
-  date: string;
-  size: string;
-  result: 'FAKE' | 'REAL';
-  percentage: string;
-}
+type FilterType = 'All' | 'FAKE' | 'REAL' | 'Processing';
 
-const HISTORY_DATA: HistoryRecord[] = [
-  {
-    id: '1',
-    thumb: 'https://images.unsplash.com/photo-1516259762381-22954d7d3ad2?w=300&q=80',
-    duration: '0:45',
-    title: 'president_speech_dub_v2.mp4',
-    date: 'Oct 24, 2023 \u2022 14:23',
-    size: '12.4 MB',
-    result: 'FAKE',
-    percentage: '98.2%',
-  },
-  {
-    id: '2',
-    thumb: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=300&q=80',
-    duration: '1:12',
-    title: 'team_meeting_zoom_rec.mp4',
-    date: 'Oct 23, 2023 \u2022 09:15',
-    size: '45.1 MB',
-    result: 'REAL',
-    percentage: '99.8%',
-  },
-  {
-    id: '3',
-    thumb: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300&q=80',
-    duration: '0:15',
-    title: 'celebrity_endorsement_tiktok.mp4',
-    date: 'Oct 21, 2023 \u2022 18:42',
-    size: '4.2 MB',
-    result: 'FAKE',
-    percentage: '94.5%',
-  },
-  {
-    id: '4',
-    thumb: 'https://images.unsplash.com/photo-1506744626753-1fa30d22e3a9?w=300&q=80',
-    duration: '2:30',
-    title: 'news_broadcast_clip_01.mp4',
-    date: 'Oct 20, 2023 \u2022 11:05',
-    size: '82.7 MB',
-    result: 'REAL',
-    percentage: '97.1%',
-  },
-  {
-    id: '5',
-    thumb: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=300&q=80',
-    duration: '0:08',
-    title: 'funny_cat_meme_generated.mp4',
-    date: 'Oct 18, 2023 \u2022 22:14',
-    size: '1.8 MB',
-    result: 'FAKE',
-    percentage: '88.9%',
-  },
-];
-
-type FilterType = 'All' | 'FAKE' | 'REAL';
+const filters: FilterType[] = ['All', 'FAKE', 'REAL', 'Processing'];
 
 export default function HistoryPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [currentPage, setCurrentPage] = useState(1);
   const { isAuthenticated } = useAuthStore();
-  const { records, isLoading, error, fetchHistory, deleteHistory } = useHistoryStore();
-
-  const filters: FilterType[] = ['All', 'FAKE', 'REAL'];
-  const historyData = useMemo<HistoryRecord[]>(() => {
-    if (!records.length) return HISTORY_DATA;
-
-    return records.map((record) => ({
-      id: record.id,
-      thumb: record.thumb ?? 'https://images.unsplash.com/photo-1516259762381-22954d7d3ad2?w=300&q=80',
-      duration: record.duration ?? '--:--',
-      title: record.title,
-      date: record.date || 'Unknown date',
-      size: record.size ?? '',
-      result: record.result,
-      percentage: record.percentage || '-',
-    }));
-  }, [records]);
+  const { records, isLoading, error, fetchHistory } = useHistoryStore();
 
   useEffect(() => {
     if (!isAuthenticated) return;
     fetchHistory().catch(() => undefined);
   }, [fetchHistory, isAuthenticated]);
 
+  const historyData = useMemo(() => {
+    return records.map(toHistoryView).sort((a, b) => sortRecords(a, b, sortBy));
+  }, [records, sortBy]);
+
   const filtered = historyData.filter((item) => {
-    if (activeFilter !== 'All' && item.result !== activeFilter) return false;
-    if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase()) && !item.date.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (activeFilter === 'Processing' && item.status === 'completed') return false;
+    if (activeFilter !== 'All' && activeFilter !== 'Processing' && item.result !== activeFilter) return false;
+    if (searchQuery && !`${item.title} ${item.date} ${item.type}`.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!isAuthenticated) return;
-    deleteHistory(id).catch(() => undefined);
-  };
+  const completedRecords = historyData.filter((item) => item.status === 'completed');
 
   return (
     <div className={s.page}>
       <AuthBackground />
-      {/* Header */}
       <header className={s.header}>
         <div className={s.headerInner}>
           <Link to="/" className={s.logo}>
@@ -128,123 +50,121 @@ export default function HistoryPage() {
           </Link>
           <nav className={s.navLinks}>
             <Link to="/" className={s.navLink}>Scan</Link>
-            <Link to="/history" className={`${s.navLink} ${s.navLinkActive}`}>History</Link>
+            <Link to="/history" className={`${s.navLink} ${s.navLinkActive}`}>My Records</Link>
             <Link to="/login" className={s.navLink}>Profile</Link>
           </nav>
         </div>
       </header>
 
-      {/* Content */}
       <div className={s.container}>
         <div className={s.pageHeader}>
-          <h1 className={s.pageTitle}>Analysis History</h1>
-          <p className={s.pageSubtitle}>
-            {isLoading ? 'Loading your analysis records...' : 'Review your past video analysis records and reports.'}
-          </p>
-          {error && <p className={s.errorText}>{error}</p>}
+          <div>
+            <h1 className={s.pageTitle}>My Analysis Records</h1>
+            <p className={s.pageSubtitle}>
+              {isLoading ? 'Loading your video analysis records...' : 'Check your submitted videos and completed analysis results.'}
+            </p>
+            {error && <p className={s.errorText}>{error}</p>}
+          </div>
+          <Link to="/" className={s.scanButton}>New Scan</Link>
         </div>
 
-        {/* Summary Cards */}
-        <div className={s.summaryGrid}>
-          <div className={s.summaryCard}>
-            <div className={s.summaryLabel}>Total Analyses</div>
-            <div className={s.summaryValue}>{historyData.length}</div>
-          </div>
-          <div className={s.summaryCard}>
-            <div className={s.summaryLabel}>FAKE Detections</div>
-            <div className={`${s.summaryValue} ${s.summaryValueRed}`}>
-              {historyData.filter((item) => item.result === 'FAKE').length}
+        {!isAuthenticated ? (
+          <EmptyState
+            title="Login required"
+            message="내 기록은 로그인 후 조회할 수 있습니다."
+            action={<Link to="/login" className={s.emptyAction}>Login</Link>}
+          />
+        ) : (
+          <>
+            <div className={s.summaryGrid}>
+              <div className={s.summaryCard}>
+                <div className={s.summaryLabel}>Total Analyses</div>
+                <div className={s.summaryValue}>{historyData.length}</div>
+              </div>
+              <div className={s.summaryCard}>
+                <div className={s.summaryLabel}>Completed</div>
+                <div className={s.summaryValue}>{completedRecords.length}</div>
+              </div>
+              <div className={s.summaryCard}>
+                <div className={s.summaryLabel}>Avg. Detection Prob.</div>
+                <div className={s.summaryValue}>{getAveragePercentage(completedRecords)}</div>
+              </div>
             </div>
-          </div>
-          <div className={s.summaryCard}>
-            <div className={s.summaryLabel}>Avg. Detection Prob.</div>
-            <div className={s.summaryValue}>{getAveragePercentage(historyData)}</div>
-          </div>
-        </div>
 
-        {/* Controls */}
-        <div className={s.controlsBar}>
-          <div className={s.filterTabs}>
-            {filters.map((f) => (
-              <button
-                key={f}
-                className={`${s.filterTab} ${activeFilter === f ? s.filterTabActive : ''}`}
-                onClick={() => setActiveFilter(f)}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-          <div className={s.searchSort}>
-            <div className={s.searchInput}>
-              <svg className={s.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search filename or date..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <select className={s.sortSelect} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="prob_high">Highest Probability</option>
-              <option value="prob_low">Lowest Probability</option>
-            </select>
-          </div>
-        </div>
-
-        {/* History List */}
-        <div className={s.historyList}>
-          {filtered.map((item) => (
-            <Link to="/scan/analysis" key={item.id} className={s.historyItem}>
-              <div className={s.itemThumb}>
-                <img src={item.thumb} alt="Thumbnail" />
-                <span className={s.duration}>{item.duration}</span>
+            <div className={s.controlsBar}>
+              <div className={s.filterTabs}>
+                {filters.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={`${s.filterTab} ${activeFilter === filter ? s.filterTabActive : ''}`}
+                    onClick={() => setActiveFilter(filter)}
+                  >
+                    {filter}
+                  </button>
+                ))}
               </div>
-              <div className={s.itemDetails}>
-                <div className={s.itemTitle}>{item.title}</div>
-                <div className={s.itemMeta}>
-                  <span>{item.date}</span>
-                  <span>{item.size}</span>
-                </div>
-              </div>
-              <div className={s.itemResult}>
-                <span className={`${s.badge} ${item.result === 'FAKE' ? s.badgeFake : s.badgeReal}`}>
-                  {item.result}
-                </span>
-                <span className={s.percentage}>{item.percentage}</span>
-              </div>
-              <div className={s.itemActions}>
-                <button className={s.btnIcon} aria-label="Delete record" onClick={(e) => handleDelete(e, item.id)}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <div className={s.searchSort}>
+                <div className={s.searchInput}>
+                  <svg className={s.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
-                </button>
+                  <input
+                    type="text"
+                    placeholder="Search filename, URL, or date..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <select className={s.sortSelect} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="prob_high">Highest Score</option>
+                  <option value="prob_low">Lowest Score</option>
+                </select>
               </div>
-            </Link>
-          ))}
-        </div>
+            </div>
 
-        {/* Pagination */}
-        <div className={s.pagination}>
-          {[1, 2, 3, '...', 12].map((p, i) => (
-            <button
-              key={i}
-              className={`${s.pageBtn} ${p === currentPage ? s.pageBtnActive : ''}`}
-              onClick={() => typeof p === 'number' && setCurrentPage(p)}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+            {filtered.length ? (
+              <div className={s.historyList}>
+                {filtered.map((item) => (
+                  <Link to={`/scan/analysis?videoId=${encodeURIComponent(item.id)}`} key={item.id} className={s.historyItem}>
+                    <div className={s.itemThumb} aria-hidden="true">
+                      <div className={s.itemThumbPlaceholder}>{item.type.slice(0, 2)}</div>
+                    </div>
+                    <div className={s.itemDetails}>
+                      <div className={s.itemTitle}>{item.title}</div>
+                      <div className={s.itemMeta}>
+                        <span>{item.date || 'No date'}</span>
+                        <span>{item.type}</span>
+                        <span>ID {item.id}</span>
+                      </div>
+                    </div>
+                    <div className={s.itemResult}>
+                      <span className={`${s.statusBadge} ${item.status === 'completed' ? s.statusCompleted : s.statusProcessing}`}>
+                        {item.statusLabel}
+                      </span>
+                      <span className={`${s.badge} ${getBadgeClass(item.result)}`}>
+                        {item.result === 'UNKNOWN' ? 'WAITING' : item.result}
+                      </span>
+                      <span className={s.percentage}>{item.percentage || '-'}</span>
+                    </div>
+                    <span className={s.actionText}>View result</span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title={records.length ? 'No matching records' : 'No records yet'}
+                message={records.length ? '검색어나 필터 조건에 맞는 기록이 없습니다.' : '분석을 요청하면 이곳에서 내 기록을 확인할 수 있습니다.'}
+                action={<Link to="/" className={s.emptyAction}>Start analysis</Link>}
+              />
+            )}
+          </>
+        )}
       </div>
 
-      {/* Footer */}
       <div className={s.footer}>
         <span>Solomon AI by RunningSnail</span>
         <a href="#">About</a> &middot;{' '}
@@ -256,9 +176,69 @@ export default function HistoryPage() {
   );
 }
 
-function getAveragePercentage(records: HistoryRecord[]) {
+function EmptyState({ title, message, action }: { title: string; message: string; action: ReactNode }) {
+  return (
+    <div className={s.emptyState}>
+      <div className={s.emptyIcon}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+          <path d="M8 13h8" />
+          <path d="M8 17h5" />
+        </svg>
+      </div>
+      <h2>{title}</h2>
+      <p>{message}</p>
+      {action}
+    </div>
+  );
+}
+
+function toHistoryView(record: HistoryRecord) {
+  const status = String(record.status ?? '').toLowerCase();
+  return {
+    id: record.id,
+    title: record.title,
+    date: formatDate(record.date),
+    dateValue: record.date ? new Date(record.date).getTime() : 0,
+    type: record.type ?? 'VIDEO',
+    status,
+    statusLabel: status ? status.toUpperCase() : 'UNKNOWN',
+    result: record.result,
+    percentage: record.percentage,
+    scoreValue: Number(record.percentage.replace('%', '')),
+  };
+}
+
+function sortRecords(a: ReturnType<typeof toHistoryView>, b: ReturnType<typeof toHistoryView>, sortBy: string) {
+  if (sortBy === 'oldest') return a.dateValue - b.dateValue;
+  if (sortBy === 'prob_high') return (b.scoreValue || 0) - (a.scoreValue || 0);
+  if (sortBy === 'prob_low') return (a.scoreValue || 0) - (b.scoreValue || 0);
+  return b.dateValue - a.dateValue;
+}
+
+function formatDate(value: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function getBadgeClass(result: HistoryRecord['result']) {
+  if (result === 'FAKE') return s.badgeFake;
+  if (result === 'REAL') return s.badgeReal;
+  return s.badgePending;
+}
+
+function getAveragePercentage(records: ReturnType<typeof toHistoryView>[]) {
   const values = records
-    .map((record) => Number(record.percentage.replace('%', '')))
+    .map((record) => record.scoreValue)
     .filter((value) => Number.isFinite(value));
 
   if (!values.length) return '-';

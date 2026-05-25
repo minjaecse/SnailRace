@@ -21,12 +21,14 @@ export default function Navbar({ variant = 'scan' }: NavbarProps) {
             </nav>
             <nav className={styles.navActions}>
               <Link to="/">Scan</Link>
+              <Link to="/history">My Records</Link>
               <Link to="/login">Login</Link>
             </nav>
           </>
         ) : (
           <nav className={styles.navLinks}>
             <Link to="/home">Home</Link>
+            <Link to="/history">My Records</Link>
             <Link to="/login">Login</Link>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
           </nav>

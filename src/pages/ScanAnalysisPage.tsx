@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AnalysisResult } from '../lib/api';
 import { useVideoStore } from '../stores/videoStore';
@@ -117,6 +117,8 @@ function makeTableDataFromResult(result: AnalysisResult | null) {
 /* ━━━━━━━━━━━━ Component ━━━━━━━━━━━━ */
 export default function ScanAnalysisPage() {
   const [view, setView] = useState<'loading' | 'results'>('loading');
+  const [searchParams] = useSearchParams();
+  const historyVideoId = searchParams.get('videoId');
   const [progress, setProgress] = useState(0);
   const [stepText, setStepText] = useState(STEPS[0]);
   const { submitVideoUrl,
@@ -253,7 +255,7 @@ export default function ScanAnalysisPage() {
 
   /* ── Progress ── */
   useEffect(() => {
-    if (view !== 'loading' || currentVideoId) return;
+    if (view !== 'loading' || currentVideoId || historyVideoId) return;
     let prog = 0;
     const id = setInterval(() => {
       prog += Math.random() * 2.5;
@@ -310,6 +312,29 @@ export default function ScanAnalysisPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentVideoId, view]);
+
+  useEffect(() => {
+    if (!historyVideoId || view !== 'loading') return;
+
+    let isMounted = true;
+    setProgress(72);
+    setStepText('Loading saved analysis result...');
+
+    fetchResult(historyVideoId)
+      .then((savedResult) => {
+        if (!isMounted) return;
+        setProgress(100);
+        showResults(savedResult);
+      })
+      .catch(() => {
+        if (isMounted) setStepText('Saved analysis result unavailable');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyVideoId, view]);
 
   /* ── Switch to results ── */
   function showResults(resultOverride = result) {
