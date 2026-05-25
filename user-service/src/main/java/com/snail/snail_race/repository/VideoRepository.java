@@ -1,9 +1,12 @@
 package com.snail.snail_race.repository;
 
+import java.util.List;
+
 import com.snail.snail_race.domain.Video;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface VideoRepository extends JpaRepository<Video, Long> {
+    List<Video> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

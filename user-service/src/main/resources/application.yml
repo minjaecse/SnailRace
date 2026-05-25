@@ -33,3 +33,6 @@ app:
 ai:
   server:
     base-url: ${AI_SERVER_BASE_URL:http://ceprj.gachon.ac.kr:60006}
+
+jwt:
+  secret: secret-key-at-least-32-characters-long-12345678901234567890
