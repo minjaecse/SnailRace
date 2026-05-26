@@ -15,4 +15,9 @@ public class AiAnalysisResponse {
     private List<DeepfakeModelDto> models;
     private DeepfakeEvidenceDto evidence;
     private Integer latency_ms;
+    private Double rgb_contribution;
+    private Double freq_contribution;
+    private List<Object> top_regions;
+    private String forensic_report;
+    private String original_face_url;
 }
