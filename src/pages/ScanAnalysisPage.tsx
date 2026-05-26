@@ -111,6 +111,16 @@ function makeTableDataFromResult(result: AnalysisResult | null) {
   return makeTableData();
 }
 
+function readFiniteNumber(value: unknown) {
+  const numberValue = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function scoreToPercent(score?: number) {
+  if (typeof score !== 'number') return undefined;
+  return score > 1 ? score : score * 100;
+}
+
 /* ── Radial node data ── */
 // function makeRadialNodes removed
 
@@ -375,22 +385,18 @@ export default function ScanAnalysisPage() {
   const pctStr = `${Math.floor(progress)}%`;
   const targetName = targetLabel ?? 'video_evidence_73A.mp4';
   const isT2V = result?.analysis_type === 'T2V';
-  const t2vScore = ((result?.t2v_score ?? 0) / 100).toFixed(2);
   
-  const verdict = result?.final_verdict ?? 'AI GENERATED';
+  const verdict = (result?.final_verdict ?? 'UNKNOWN').toUpperCase();
   const scoreText = verdict === 'FAKE' ? 'CRITICAL' : 'SECURE';
-  const verdictText = verdict.toUpperCase();
-  const rawScore = (result?.raw as any)?.score ?? ((result?.deepfake_score ?? 94) / 100);
-  const threshold = (result?.raw as any)?.threshold ?? 0.081;
-  let anomalyIndex = 0;
-  if (rawScore >= threshold) {
-      const ratio = Math.min(1, (rawScore - threshold) / (1 - threshold));
-      anomalyIndex = 88.5 + (ratio * 11.4);
-  } else {
-      const ratio = Math.max(0, rawScore / threshold);
-      anomalyIndex = 12.4 + (ratio * 35.1);
-  }
-  const displayIndex = anomalyIndex.toFixed(1);
+  const verdictText = verdict;
+  const normalizedDeepfakeScore = scoreToPercent(result?.deepfake_score);
+  const rawScore = readFiniteNumber((result?.raw as any)?.score) ?? (
+    typeof normalizedDeepfakeScore === 'number' ? normalizedDeepfakeScore / 100 : undefined
+  );
+  const apiScorePercent = isT2V
+    ? scoreToPercent(result?.t2v_score)
+    : normalizedDeepfakeScore ?? scoreToPercent(rawScore);
+  const displayScore = typeof apiScorePercent === 'number' ? apiScorePercent.toFixed(1) : 'N/A';
   const suspiciousCount = result?.suspicious_frames.length;
 
   return (
@@ -619,8 +625,8 @@ export default function ScanAnalysisPage() {
                   <span className={`${s.statIndex} ${s.statIndexMuted}`}>02</span>
                 </div>
                 <div>
-                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>{isT2V ? t2vScore : displayIndex}</div>
-                  <div className={s.statDescMuted}>{isT2V ? "Frequency deviation probability" : "Normalized artifact severity (0-100)"}</div>
+                  <div className={`${s.statBigValue} ${s.statBigValue4xl}`}>{displayScore}</div>
+                  <div className={s.statDescMuted}>{isT2V ? "Frequency deviation probability (%)" : "Deepfake probability (%)"}</div>
                 </div>
               </div>
               {/* Spatial */}

@@ -193,7 +193,7 @@ export async function getUserById(id: string | number, token?: string | null): P
 }
 
 export async function logout(token: string) {
-  return request<{ message?: string }>('/api/auth/logout', {
+  return request<{ message?: string }>('/auth/logout', {
     method: 'POST',
     token,
   });
@@ -321,7 +321,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 function normalizeAnalysisResult(raw: unknown): AnalysisResult {
-  const root = asRecord(raw) ?? {};
+  const response = asRecord(raw) ?? {};
+  const root =
+    asRecord(readFirst(response, ['analysis_result', 'analysisResult', 'result', 'data'])) ??
+    response;
   const deepfake = asRecord(readFirst(root, ['deepfake', 'deepfake_result', 'deepfakeResult'])) ?? root;
   const t2v = asRecord(readFirst(root, ['t2v', 't2v_result', 't2vResult'])) ?? root;
   const evidence = asRecord(deepfake.evidence);
@@ -345,7 +348,10 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
       readString(readFirst(root, ['xaiHeatmapUrl', 'xai_heatmap_url'])) ??
       readString(heatmaps?.v7) ??
       readString(t2vFirstHeatmap?.overlay_url),
-    per_frame_probs: toNumberArray(readFirst(root, ['perFrameProbs', 'per_frame_probs']) ?? deepfake.per_frame_probs),
+    per_frame_probs: toNumberArray(
+      readFirst(root, ['perFrameProbs', 'per_frame_probs', 'per_frame', 'frame_probs']) ??
+        readFirst(deepfake, ['perFrameProbs', 'per_frame_probs', 'per_frame', 'frame_probs']),
+    ),
     analysis_type: readString(readFirst(root, ['analysis_type'])), engine_label: readString(readFirst(root, ['engine_label'])),
     original_face_url: readString(readFirst(root, ['original_face_url'])),
     rgb_contribution: readNumber(readFirst(root, ['rgb_contribution'])),
