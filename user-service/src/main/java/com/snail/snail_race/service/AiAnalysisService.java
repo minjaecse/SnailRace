@@ -58,6 +58,7 @@ public class AiAnalysisService {
                     response != null ? response.getLatency_ms() : null);
 
             Result result = findOrCreateResult(video);
+            result.setRawJson(toJson(response));
             result.setFinalVerdict(response != null ? response.getDecision() : null);
             result.setDeepfakeScore(resolveDeepfakeScore(response));
             result.setT2vScore(null);
@@ -133,6 +134,7 @@ public class AiAnalysisService {
                     response != null ? response.getModel_used() : null);
 
             Result result = findOrCreateResult(video);
+            result.setRawJson(toJson(response));
             result.setFinalVerdict(response != null ? response.getDecision() : null);
             result.setDeepfakeScore(null);
             result.setT2vScore(response != null && response.getT2v_prob() != null
@@ -225,6 +227,7 @@ public class AiAnalysisService {
         result.setXaiText(failureMessage);
         result.setXaiHeatmapUrl(null);
         result.setSuspiciousFrames(null);
+        result.setRawJson(null);
         resultRepository.save(result);
     }
 

@@ -28,6 +28,7 @@ public class ResultService {
                 .orElseThrow(() -> new ResultNotFoundException(videoId));
 
         List<FrameProbDto> suspiciousFrames = parseFrameProbs(result.getSuspiciousFrames());
+        Object raw = parseRaw(result.getRawJson());
 
         return new VideoResultResponse(
                 result.getVideo().getId(),
@@ -37,7 +38,8 @@ public class ResultService {
                 result.getXaiText(),
                 result.getXaiHeatmapUrl(),
                 suspiciousFrames,
-                Collections.emptyList()  // per_frame_probs: 엔티티에 미존재, 추후 컬럼 추가 필요
+                Collections.emptyList(),
+                raw
         );
     }
 
@@ -49,6 +51,17 @@ public class ResultService {
             return objectMapper.readValue(json, new TypeReference<List<FrameProbDto>>() {});
         } catch (Exception e) {
             return Collections.emptyList();
+        }
+    }
+
+    private Object parseRaw(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, Object.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 }
