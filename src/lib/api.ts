@@ -350,8 +350,8 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
       readString(readFirst(rootRaw, ['xai_heatmap_url', 'xaiHeatmapUrl'])) ??
       readString(heatmaps?.v7) ??
       readString(t2vFirstHeatmap?.overlay_url),
-    per_frame_probs: toNumberArray(readFirst(root, ['perFrameProbs', 'per_frame_probs']) ?? readFirst(rootRaw,
-      ['per_frame_probs']) ?? deepfake.per_frame_probs),
+    per_frame_probs: Array.isArray(root.per_frame_probs) && root.per_frame_probs.length > 0 ? toNumberArray(root.per_frame_probs) : toNumberArray(readFirst(rootRaw, ['per_frame_probs']) ?? deepfake.per_frame_probs),
+
     analysis_type: readString(readFirst(root, ['analysis_type'])) ?? readString(readFirst(rootRaw, ['analysis_type'])),
     engine_label: readString(readFirst(root, ['engine_label'])) ?? readString(readFirst(rootRaw, ['engine_label'])),
     original_face_url: readString(readFirst(rootRaw, ['original_face_url'])),
