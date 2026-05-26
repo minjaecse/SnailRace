@@ -35,4 +35,9 @@ public class AuthController {
         userService.signup(request);
         return ApiResponse.success(null, "Signup successful");
     }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout() {
+        return ApiResponse.success(null, "Logout successful");
+    }
 }

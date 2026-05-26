@@ -17,6 +17,7 @@ import org.springframework.web.client.RestClientResponseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -26,6 +27,7 @@ public class AiAnalysisService {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final ResultRepository resultRepository;
+    private final S3Service s3Service;
 
     @Value("${ai.server.base-url}")
     private String baseUrl;
@@ -42,10 +44,11 @@ public class AiAnalysisService {
 
     public void requestDeepfakeAnalysis(Video video, String videoUrl) {
         video.setStatus("ANALYZING");
-        log.info("[AI] Requesting deepfake analysis: videoId={}, type={}, videoUrl={}, targetUrl={}",
-                video.getId(), video.getType(), videoUrl, baseUrl + "/deepfake/analyze");
         try {
-            AiAnalysisResponse response = callAiServer("/deepfake/analyze", videoUrl, AiAnalysisResponse.class);
+            String analysisVideoUrl = s3Service.createPresignedGetUrlIfS3Url(videoUrl);
+            log.info("[AI] Requesting deepfake analysis: videoId={}, type={}, videoUrl={}, presigned={}, targetUrl={}",
+                    video.getId(), video.getType(), videoUrl, !Objects.equals(videoUrl, analysisVideoUrl), baseUrl + "/deepfake/analyze");
+            AiAnalysisResponse response = callAiServer("/deepfake/analyze", analysisVideoUrl, AiAnalysisResponse.class);
 
             log.info("[AI] Deepfake response: videoId={}, requestId={}, decision={}, score={}, latencyMs={}",
                     video.getId(),
@@ -117,10 +120,11 @@ public class AiAnalysisService {
 
     public void requestT2vAnalysis(Video video, String videoUrl) {
         video.setStatus("ANALYZING");
-        log.info("[AI] Requesting T2V analysis: videoId={}, type={}, videoUrl={}, targetUrl={}",
-                video.getId(), video.getType(), videoUrl, baseUrl + "/t2v/analyze");
         try {
-            T2vAnalysisResponse response = callAiServer("/t2v/analyze", videoUrl, T2vAnalysisResponse.class);
+            String analysisVideoUrl = s3Service.createPresignedGetUrlIfS3Url(videoUrl);
+            log.info("[AI] Requesting T2V analysis: videoId={}, type={}, videoUrl={}, presigned={}, targetUrl={}",
+                    video.getId(), video.getType(), videoUrl, !Objects.equals(videoUrl, analysisVideoUrl), baseUrl + "/t2v/analyze");
+            T2vAnalysisResponse response = callAiServer("/t2v/analyze", analysisVideoUrl, T2vAnalysisResponse.class);
 
             log.info("[AI] T2V response: videoId={}, decision={}, t2vProb={}, modelUsed={}",
                     video.getId(),
