@@ -323,19 +323,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 function normalizeAnalysisResult(raw: unknown): AnalysisResult {
-  const response = asRecord(raw) ?? {};
-  const root =
-    asRecord(readFirst(response, ['analysis_result', 'analysisResult', 'result', 'data'])) ??
-    response;
+  const root = asRecord(raw) ?? {};
+  const rootRaw = asRecord(root.raw) ?? {};
   const deepfake = asRecord(readFirst(root, ['deepfake', 'deepfake_result', 'deepfakeResult'])) ?? root;
   const t2v = asRecord(readFirst(root, ['t2v', 't2v_result', 't2vResult'])) ?? root;
-  const evidence = asRecord(deepfake.evidence);
+  const evidence = asRecord(deepfake.evidence) ?? asRecord(rootRaw.evidence);
   const heatmaps = asRecord(evidence?.heatmaps);
-  const t2vVisualization = asRecord(t2v.xai_visualization);
+  const t2vVisualization = asRecord(t2v.xai_visualization) ?? asRecord(rootRaw.xai_visualization);
   const t2vHeatmaps = t2vVisualization?.heatmaps;
   const t2vFirstHeatmap = Array.isArray(t2vHeatmaps) ? asRecord(t2vHeatmaps[0]) : undefined;
 
-  const deepfakeProb = readScore(readFirst(deepfake, ['deepfakeScore', 'deepfake_score', 'score', 'probability', 'confidence', 'ensemble_prob']));
+  const deepfakeProb = readScore(readFirst(deepfake, ['deepfakeScore', 'deepfake_score', 'ensemble_prob']));
   const t2vProb = readScore(readFirst(t2v, ['t2vScore', 't2v_score', 't2v_prob']));
   const finalVerdict = readVerdict(root, deepfake, t2v, deepfakeProb, t2vProb);
   const suspiciousFrames = readSuspiciousFrames(root, evidence);
@@ -344,25 +342,27 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
     final_verdict: finalVerdict,
     deepfake_score: toPercent(deepfakeProb),
     t2v_score: toPercent(t2vProb),
-    xai_text: readString(readFirst(root, ['xaiText', 'xai_text'])),
-    suspicious_frames: suspiciousFrames,
+    xai_text: readString(readFirst(root, ['xaiText', 'xai_text'])) ?? readString(readFirst(rootRaw, ['xai_text'])),
+    suspicious_frames: Array.isArray(suspiciousFrames) && suspiciousFrames.length > 0 ? suspiciousFrames :
+      (Array.isArray(rootRaw.suspicious_frames) ? rootRaw.suspicious_frames : []) as any,
     xai_heatmap_url:
       readString(readFirst(root, ['xaiHeatmapUrl', 'xai_heatmap_url'])) ??
+      readString(readFirst(rootRaw, ['xai_heatmap_url', 'xaiHeatmapUrl'])) ??
       readString(heatmaps?.v7) ??
       readString(t2vFirstHeatmap?.overlay_url),
-    per_frame_probs: toNumberArray(
-      readFirst(root, ['perFrameProbs', 'per_frame_probs', 'per_frame', 'frame_probs']) ??
-        readFirst(deepfake, ['perFrameProbs', 'per_frame_probs', 'per_frame', 'frame_probs']),
-    ),
-    analysis_type: readString(readFirst(root, ['analysis_type'])), engine_label: readString(readFirst(root, ['engine_label'])),
-    original_face_url: readString(readFirst(root, ['original_face_url'])),
-    rgb_contribution: readNumber(readFirst(root, ['rgb_contribution'])),
-    freq_contribution: readNumber(readFirst(root, ['freq_contribution'])),
-    top_regions: readFirst(root, ['top_regions']) as any,
-    forensic_report: readString(readFirst(root, ['forensic_report', 'xai_text'])),
+    per_frame_probs: toNumberArray(readFirst(root, ['perFrameProbs', 'per_frame_probs']) ?? readFirst(rootRaw,
+      ['per_frame_probs']) ?? deepfake.per_frame_probs),
+    analysis_type: readString(readFirst(root, ['analysis_type'])) ?? readString(readFirst(rootRaw, ['analysis_type'])),
+    engine_label: readString(readFirst(root, ['engine_label'])) ?? readString(readFirst(rootRaw, ['engine_label'])),
+    original_face_url: readString(readFirst(rootRaw, ['original_face_url'])),
+    rgb_contribution: readNumber(readFirst(rootRaw, ['rgb_contribution'])),
+    freq_contribution: readNumber(readFirst(rootRaw, ['freq_contribution'])),
+    top_regions: readFirst(rootRaw, ['top_regions']) as any,
+    forensic_report: readString(readFirst(rootRaw, ['forensic_report'])),
     raw,
   };
 }
+
 
 function normalizeHistoryRecord(raw: unknown): HistoryRecord {
   const record = asRecord(raw) ?? {};
