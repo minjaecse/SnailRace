@@ -10,8 +10,8 @@ type VideoStoreState = {
   isSubmitting: boolean;
   isPolling: boolean;
   error: string | null;
-  submitVideoUrl: (url: string, type: api.VideoAnalysisType) => Promise<string>;
-  uploadVideoFile: (file: File, type: api.VideoAnalysisType) => Promise<string>;
+  submitVideoUrl: (url: string, type: api.VideoAnalysisType, model?: string) => Promise<string>;
+  uploadVideoFile: (file: File, type: api.VideoAnalysisType, model?: string) => Promise<string>;
   fetchStatus: (videoId?: string) => Promise<api.VideoStatus>;
   fetchResult: (videoId?: string) => Promise<api.AnalysisResult>;
   resetAnalysis: () => void;
@@ -26,10 +26,10 @@ export const useVideoStore = create<VideoStoreState>((set, get) => ({
   isSubmitting: false,
   isPolling: false,
   error: null,
-  submitVideoUrl: async (url, type) => {
+  submitVideoUrl: async (url, type, model) => {
     set({ isSubmitting: true, error: null, result: null, status: 'queued', targetLabel: url });
     try {
-      const videoId = await api.requestVideoUrl(url, type, getAccessToken());
+      const videoId = await api.requestVideoUrl(url, type, getAccessToken(), model);
       set({ currentVideoId: videoId, status: 'queued', isSubmitting: false });
       return videoId;
     } catch (error) {
@@ -37,10 +37,10 @@ export const useVideoStore = create<VideoStoreState>((set, get) => ({
       throw error;
     }
   },
-  uploadVideoFile: async (file, type) => {
+  uploadVideoFile: async (file, type, model) => {
     set({ isSubmitting: true, error: null, result: null, status: 'queued', targetLabel: file.name });
     try {
-      const videoId = await api.uploadVideo(file, type, getAccessToken());
+      const videoId = await api.uploadVideo(file, type, getAccessToken(), model);
       set({ currentVideoId: videoId, status: 'queued', isSubmitting: false });
       return videoId;
     } catch (error) {

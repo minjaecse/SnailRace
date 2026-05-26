@@ -26,7 +26,7 @@ export default function ScanInput() {
   const handleScan = async () => {
     if (!agreed || !url.trim() || isSubmitting) return;
     try {
-      await submitVideoUrl(url.trim(), category);
+      await submitVideoUrl(url.trim(), category, category === 'DEEPFAKE' ? subModel : undefined);
       navigate('/scan/analysis');
     } catch {
       // Managed by store
@@ -38,7 +38,7 @@ export default function ScanInput() {
     e.target.value = '';
     if (!file || !agreed || isSubmitting) return;
     try {
-      await uploadVideoFile(file, category);
+      await uploadVideoFile(file, category, category === 'DEEPFAKE' ? subModel : undefined);
       navigate('/scan/analysis');
     } catch {
       // Managed by store

@@ -200,9 +200,10 @@ export async function logout(token: string) {
 }
 
 export async function refreshAuthToken(refreshToken: string) {
-  const data = await request<Record<string, unknown>>('/api/auth/refresh', {
+  const data = await request<Record<string, unknown>>('/auth/refresh', {
     method: 'POST',
     body: JSON.stringify({ refreshToken, refresh_token: refreshToken }),
+    baseUrl: getAuthApiBaseUrl(),
   });
 
   const accessToken = readFirst(data, ['accessToken', 'access_token', 'token', 'jwt']);
@@ -213,10 +214,11 @@ export async function refreshAuthToken(refreshToken: string) {
   return accessToken;
 }
 
-export async function uploadVideo(file: File, type: VideoAnalysisType, token?: string | null) {
+export async function uploadVideo(file: File, type: VideoAnalysisType, token?: string | null, model?: string) {
   const formData = new FormData();
   formData.append('type', type);
   formData.append('file', file);
+  if (model) formData.append('model', model);
 
   const data = await request<Record<string, unknown>>('/api/videos/upload', {
     method: 'POST',
@@ -246,10 +248,10 @@ export async function createPresignedUploadUrl(fileName: string, contentType: st
   return { uploadUrl, fileUrl: fileUrl ?? uploadUrl } satisfies PresignedUploadResponse;
 }
 
-export async function requestVideoUrl(url: string, type: VideoAnalysisType, token?: string | null) {
+export async function requestVideoUrl(url: string, type: VideoAnalysisType, token?: string | null, model?: string) {
   const data = await request<Record<string, unknown>>('/api/videos/url', {
     method: 'POST',
-    body: JSON.stringify({ url, type }),
+    body: JSON.stringify({ url, type, ...(model ? { model } : {}) }),
     token,
     baseUrl: getVideoApiBaseUrl(),
   });
@@ -333,7 +335,7 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
   const t2vHeatmaps = t2vVisualization?.heatmaps;
   const t2vFirstHeatmap = Array.isArray(t2vHeatmaps) ? asRecord(t2vHeatmaps[0]) : undefined;
 
-  const deepfakeProb = readScore(readFirst(deepfake, ['deepfakeScore', 'deepfake_score', 'ensemble_prob']));
+  const deepfakeProb = readScore(readFirst(deepfake, ['deepfakeScore', 'deepfake_score', 'score', 'probability', 'confidence', 'ensemble_prob']));
   const t2vProb = readScore(readFirst(t2v, ['t2vScore', 't2v_score', 't2v_prob']));
   const finalVerdict = readVerdict(root, deepfake, t2v, deepfakeProb, t2vProb);
   const suspiciousFrames = readSuspiciousFrames(root, evidence);

@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AnalysisResult } from '../lib/api';
 import { useVideoStore } from '../stores/videoStore';
@@ -66,7 +66,7 @@ function makeTopoData(n = 120) {
 }
 
 function makeTopoDataFromResult(result: AnalysisResult | null) {
-  if (!result?.per_frame_probs?.length) return makeTopoData();
+  if (!result?.per_frame_probs?.length) return [];
   const threshold = (result.raw as any)?.threshold ?? 0.11;
   return result.per_frame_probs.map((prob, index) => {
     let anomalyIndex = 0;
@@ -82,7 +82,7 @@ function makeTopoDataFromResult(result: AnalysisResult | null) {
 }
 
 function makeTableDataFromResult(result: AnalysisResult | null) {
-  if (!result) return makeTableData();
+  if (!result) return [];
 
   if (result.suspicious_frames.length) {
     return result.suspicious_frames.map((frame) => ({
@@ -108,7 +108,7 @@ function makeTableDataFromResult(result: AnalysisResult | null) {
     }));
   }
 
-  return makeTableData();
+  return [];
 }
 
 function readFiniteNumber(value: unknown) {
@@ -127,6 +127,7 @@ function scoreToPercent(score?: number) {
 /* ━━━━━━━━━━━━ Component ━━━━━━━━━━━━ */
 export default function ScanAnalysisPage() {
   const [view, setView] = useState<'loading' | 'results'>('loading');
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const historyVideoId = searchParams.get('videoId');
   const [progress, setProgress] = useState(0);
@@ -266,21 +267,8 @@ export default function ScanAnalysisPage() {
   /* ── Progress ── */
   useEffect(() => {
     if (view !== 'loading' || currentVideoId || historyVideoId) return;
-    let prog = 0;
-    const id = setInterval(() => {
-      prog += Math.random() * 2.5;
-      if (prog > 100) prog = 100;
-      setProgress(prog);
-      const stepIdx = Math.floor((prog / 100) * STEPS.length);
-      if (STEPS[stepIdx]) setStepText(STEPS[stepIdx]);
-      if (prog >= 100) {
-        clearInterval(id);
-        setTimeout(() => showResults(), 500);
-      }
-    }, 100);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentVideoId, view]);
+    navigate('/', { replace: true });
+  }, [currentVideoId, historyVideoId, navigate, view]);
 
   useEffect(() => {
     if (!currentVideoId || view !== 'loading') return;
@@ -368,11 +356,11 @@ export default function ScanAnalysisPage() {
     const currentLabel = targetLabel;
     resetAnalysis();
     try {
-      await submitVideoUrl(currentLabel, newModel === 'T2V' ? 'T2V' : 'DEEPFAKE');
+      await submitVideoUrl(currentLabel, newModel === 'T2V' ? 'T2V' : 'DEEPFAKE', newModel === 'T2V' ? undefined : newModel);
     } catch (e) { console.error(e); }
   };
 
-  function resetAnalysis() {
+  function resetAnalysis(redirectToScan = false) {
     resetVideoAnalysis();
     setProgress(0);
     setStepText(STEPS[0]);
@@ -380,6 +368,7 @@ export default function ScanAnalysisPage() {
     setScannerRow(0);
     setMatrixRows(Array.from({ length: NUM_ROWS }, () => ({ data: '-- -- -- --', state: 'idle' })));
     setView('loading');
+    if (redirectToScan) navigate('/', { replace: true });
   }
 
   const pctStr = `${Math.floor(progress)}%`;
@@ -594,7 +583,7 @@ export default function ScanAnalysisPage() {
                 ))}
               </div>
             </div>
-            <button className={s.newAnalysisBtn} onClick={resetAnalysis}>
+            <button className={s.newAnalysisBtn} onClick={() => resetAnalysis(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                 <path d="M21 3v5h-5" />
