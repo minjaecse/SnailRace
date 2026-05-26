@@ -815,7 +815,7 @@
 .tableCell {
   grid-column: span 12;
   background: var(--bg-white);
-  height: 300px;
+  max-height: 420px;
   overflow-y: auto;
   position: relative;
 }

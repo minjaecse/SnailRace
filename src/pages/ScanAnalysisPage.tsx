@@ -726,7 +726,7 @@ export default function ScanAnalysisPage() {
             </div>
 
             {/* Data table */}
-            <div className={s.tableCell} style={{ gridColumn: "span 12", height: "300px", overflowY: "auto" }}>
+            <div className={s.tableCell} style={{ gridColumn: "span 12" }}>
               <table className={s.dataTable}>
                 <thead>
                   <tr>

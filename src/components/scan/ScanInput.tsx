@@ -7,7 +7,7 @@ import styles from './ScanInput.module.css';
 const DESCRIPTIONS = {
   RYZE: '고전 딥페이크(FF++, DFDC) 특화 모델입니다.',
   LEE_SIN: '찰나의 조작도 잡아내는 공격적 탐지 모드입니다.',
-  SHEN: '오늘 실험 1위! 가장 정확한 밸런스형 모델입니다.',
+  SHEN: '현재 최고 성능! 가장 정확한 밸런스형 모델입니다.',
   RAMMUS: '확실한 조작만 잡아내는 보수적 방어 모드입니다.',
   T2V: '생성형 AI(Text-to-Video) 전용 탐지 엔진입니다.',
 };
