@@ -40,6 +40,9 @@ public class Result {
     @Column(name = "xai_heatmap_url")
     private String xaiHeatmapUrl;
 
+    @Column(name = "raw_json", columnDefinition = "longtext")
+    private String rawJson;
+
     @Column(name = "created_at", updatable = false)
     @Setter(AccessLevel.NONE)
     private LocalDateTime createdAt;

@@ -18,4 +18,5 @@ public class VideoResultResponse {
     private String xai_heatmap_url;
     private List<FrameProbDto> suspicious_frames;
     private List<FrameProbDto> per_frame_probs;
+    private Object raw;
 }
