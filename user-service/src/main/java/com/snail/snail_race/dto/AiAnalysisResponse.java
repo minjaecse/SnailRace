@@ -20,4 +20,6 @@ public class AiAnalysisResponse {
     private List<Object> top_regions;
     private String forensic_report;
     private String original_face_url;
+    private List<Double> per_frame_probs;
+    private List<Object> suspicious_frames;
 }
