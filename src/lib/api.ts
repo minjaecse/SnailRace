@@ -360,11 +360,12 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
     xai_text: readString(readFirst(root, ['xaiText', 'xai_text'])) ?? readString(readFirst(rootRaw, ['xai_text'])),
     suspicious_frames: Array.isArray(suspiciousFrames) && suspiciousFrames.length > 0 ? suspiciousFrames :
       (Array.isArray(rootRaw.suspicious_frames) ? rootRaw.suspicious_frames : []) as any,
-    xai_heatmap_url:
+    xai_heatmap_url: resolveXaiUrl(
       readString(readFirst(root, ['xaiHeatmapUrl', 'xai_heatmap_url'])) ??
-      readString(readFirst(rootRaw, ['xai_heatmap_url', 'xaiHeatmapUrl'])) ??
-      readString(heatmaps?.v7) ??
-      readString(t2vFirstHeatmap?.overlay_url),
+        readString(readFirst(rootRaw, ['xai_heatmap_url', 'xaiHeatmapUrl'])) ??
+        readString(heatmaps?.v7) ??
+        readString(t2vFirstHeatmap?.overlay_url),
+    ),
     per_frame_probs: Array.isArray(root.per_frame_probs) && root.per_frame_probs.length > 0
       ? toNumberArray(root.per_frame_probs)
       : toNumberArray(readFirst(rootRaw, ['per_frame_probs']) ?? deepfake.per_frame_probs),
