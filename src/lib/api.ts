@@ -1,5 +1,4 @@
 const DEFAULT_GATEWAY_API_BASE_URL = "http://43.200.145.225";
-const DEFAULT_AI_STATIC_BASE_URL = 'http://43.200.145.225:60006';
 const DEFAULT_AUTH_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const DEFAULT_USER_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const DEFAULT_VIDEO_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
@@ -8,10 +7,6 @@ const VERCEL_GATEWAY_API_PROXY_URL = '/api/backend';
 export function getApiBaseUrl() {
   const configuredUrl = DEFAULT_GATEWAY_API_BASE_URL;
   return getBrowserSafeBaseUrl(configuredUrl, VERCEL_GATEWAY_API_PROXY_URL);
-}
-
-export function getAiStaticBaseUrl() {
-  return import.meta.env.VITE_AI_STATIC_BASE_URL ?? DEFAULT_AI_STATIC_BASE_URL;
 }
 
 export function resolveXaiUrl(url?: string) {
@@ -360,12 +355,11 @@ function normalizeAnalysisResult(raw: unknown): AnalysisResult {
     xai_text: readString(readFirst(root, ['xaiText', 'xai_text'])) ?? readString(readFirst(rootRaw, ['xai_text'])),
     suspicious_frames: Array.isArray(suspiciousFrames) && suspiciousFrames.length > 0 ? suspiciousFrames :
       (Array.isArray(rootRaw.suspicious_frames) ? rootRaw.suspicious_frames : []) as any,
-    xai_heatmap_url: resolveXaiUrl(
+    xai_heatmap_url:
       readString(readFirst(root, ['xaiHeatmapUrl', 'xai_heatmap_url'])) ??
-        readString(readFirst(rootRaw, ['xai_heatmap_url', 'xaiHeatmapUrl'])) ??
-        readString(heatmaps?.v7) ??
-        readString(t2vFirstHeatmap?.overlay_url),
-    ),
+      readString(readFirst(rootRaw, ['xai_heatmap_url', 'xaiHeatmapUrl'])) ??
+      readString(heatmaps?.v7) ??
+      readString(t2vFirstHeatmap?.overlay_url),
     per_frame_probs: Array.isArray(root.per_frame_probs) && root.per_frame_probs.length > 0
       ? toNumberArray(root.per_frame_probs)
       : toNumberArray(readFirst(rootRaw, ['per_frame_probs']) ?? deepfake.per_frame_probs),
