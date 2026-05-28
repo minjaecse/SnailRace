@@ -89,13 +89,12 @@ export default function T2VScanResultPage() {
     <div className={s.page}>
       {/* ── Header ── */}
       <header className={s.header}>
-        <Link to="/home" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div className={s.logoWrap}>
-            <svg className={s.logoIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            Solomon AI
-          </div>
+        <Link to="/home" className={s.logoWrap} style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
+          <svg viewBox="0 0 24 24" fill="none" className={s.logoIcon}>
+            <circle cx="9" cy="12" r="7" stroke="currentColor" strokeWidth="2" />
+            <circle cx="15" cy="12" r="7" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
+          </svg>
+          Solomon AI
         </Link>
         <div className={s.headerMeta}>
           <div className={s.metaItem}>
