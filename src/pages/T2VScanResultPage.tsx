@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useVideoStore } from '../stores/videoStore';
+import { getApiBaseUrl } from '../lib/api';
 import s from './ScanAnalysisPage.module.css';
 
 /* ── helpers ── */
@@ -254,7 +255,7 @@ export default function T2VScanResultPage() {
             </div>
             {heatmapUrl ? (
               <img
-                src={heatmapUrl.startsWith('/xai') ? `http://ceprj.gachon.ac.kr:60006${heatmapUrl}` : heatmapUrl}
+                src={heatmapUrl.startsWith('/xai') ? `${getApiBaseUrl()}/api/ai/xai-image?path=${encodeURIComponent(heatmapUrl)}` : heatmapUrl}
                 alt="T2V attention heatmap"
                 style={{ width: '100%', borderRadius: '8px', objectFit: 'cover', maxHeight: '200px' }}
               />
