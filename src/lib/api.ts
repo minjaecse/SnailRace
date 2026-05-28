@@ -14,7 +14,7 @@ export function resolveXaiUrl(url?: string) {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   if (url.startsWith('data:image')) return url;
 
-  const baseUrl = getAiStaticBaseUrl();
+  const baseUrl = getApiBaseUrl();
   if (url.startsWith('/')) return `${baseUrl}${url}`;
   return `${baseUrl}/${url}`;
 }
