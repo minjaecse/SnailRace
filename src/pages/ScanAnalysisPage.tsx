@@ -581,8 +581,8 @@ export default function ScanAnalysisPage() {
                       fontSize: '0.65rem',
                       borderRadius: '999px',
                       border: 'none',
-                      background: result?.engine_label?.includes(m) ? 'var(--accent-blue)' : 'transparent',
-                      color: result?.engine_label?.includes(m) ? '#fff' : 'var(--text-main)',
+                      background: result?.analysis_type === m ? 'var(--accent-blue)' : 'transparent',
+                      color: result?.analysis_type === m ? '#fff' : 'var(--text-main)',
                       cursor: 'pointer',
                       fontWeight: 700,
                       transition: 'all 0.2s'
