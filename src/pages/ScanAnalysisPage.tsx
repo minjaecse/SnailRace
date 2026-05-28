@@ -378,14 +378,24 @@ export default function ScanAnalysisPage() {
   const verdict = (result?.final_verdict ?? 'UNKNOWN').toUpperCase();
   const scoreText = verdict === 'FAKE' ? 'CRITICAL' : 'SECURE';
   const verdictText = verdict;
-  const normalizedDeepfakeScore = scoreToPercent(result?.deepfake_score);
   const rawScore = readFiniteNumber((result?.raw as any)?.score) ?? (
-    typeof normalizedDeepfakeScore === 'number' ? normalizedDeepfakeScore / 100 : undefined
+    typeof result?.deepfake_score === 'number'
+      ? (result.deepfake_score >= 1 ? result.deepfake_score / 100 : result.deepfake_score)
+      : undefined
   );
-  const apiScorePercent = isT2V
-    ? scoreToPercent(result?.t2v_score)
-    : normalizedDeepfakeScore ?? scoreToPercent(rawScore);
-  const displayScore = typeof apiScorePercent === 'number' ? apiScorePercent.toFixed(1) : 'N/A';
+  const threshold = readFiniteNumber((result?.raw as any)?.threshold) ?? 0.081;
+  let anomalyIndex = 0;
+  if (typeof rawScore === 'number') {
+    if (rawScore >= threshold) {
+      const ratio = Math.min(1, (rawScore - threshold) / (1 - threshold));
+      anomalyIndex = 88.5 + ratio * 11.4;
+    } else {
+      const ratio = Math.max(0, rawScore / threshold);
+      anomalyIndex = 12.4 + ratio * 35.1;
+    }
+  }
+  const apiScorePercent = isT2V ? scoreToPercent(result?.t2v_score) : anomalyIndex;
+  const displayScore = typeof apiScorePercent === 'number' && apiScorePercent > 0 ? apiScorePercent.toFixed(1) : 'N/A';
   const suspiciousCount = result?.suspicious_frames.length;
 
   return (
