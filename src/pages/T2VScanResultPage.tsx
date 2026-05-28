@@ -10,8 +10,8 @@ function scoreToPercent(score?: number | null) {
 }
 
 function getT2VProb(result: { t2v_score?: number | null; raw?: unknown } | null): number | undefined {
-  const raw = result?.raw as any;
-  if (raw?.t2v_prob != null) return raw.t2v_prob as number;
+  const innerRaw = (result?.raw as any)?.raw ?? (result?.raw as any);
+  if (innerRaw?.t2v_prob != null) return innerRaw.t2v_prob as number;
   const score = result?.t2v_score;
   if (score == null) return undefined;
   return score > 1 ? score / 100 : score;
@@ -52,25 +52,26 @@ export default function T2VScanResultPage() {
     );
   }
 
-  const raw = result.raw as any;
+  // result.raw = 전체 Spring Boot 응답, result.raw.raw = T2vAnalysisResponse JSON
+  const innerRaw = (result.raw as any)?.raw ?? (result.raw as any);
   const verdict = (result.final_verdict ?? 'UNKNOWN').toUpperCase();
   const isFake = verdict === 'FAKE';
   const t2vProb = getT2VProb(result);
   const scoreDisplay =
     t2vProb != null ? (t2vProb * 100).toFixed(1) : scoreToPercent(result.t2v_score)?.toFixed(1) ?? 'N/A';
-  const modelUsed: string = raw?.model_used ?? 'VideoMAE';
+  const modelUsed: string = innerRaw?.model_used ?? 'VideoMAE';
   const targetName = targetLabel ?? 'video_evidence.mov';
 
   /* evidence */
-  const frameImportance: number[] = raw?.evidence?.frame_importance ?? [];
-  const segments: any[] = raw?.evidence?.segments ?? [];
-  const explanations: string[] = raw?.evidence?.explanations ?? [];
+  const frameImportance: number[] = innerRaw?.evidence?.frame_importance ?? [];
+  const segments: any[] = innerRaw?.evidence?.segments ?? [];
+  const explanations: string[] = innerRaw?.evidence?.explanations ?? [];
 
   /* XAI heatmap */
   const heatmapUrl: string =
     result.xai_heatmap_url ||
-    raw?.xai_visualization?.heatmaps?.[0]?.overlay_url ||
-    raw?.xai_visualization?.heatmaps?.[0]?.heatmap_url ||
+    innerRaw?.xai_visualization?.heatmaps?.[0]?.overlay_url ||
+    innerRaw?.xai_visualization?.heatmaps?.[0]?.heatmap_url ||
     '';
 
   /* forensic text */

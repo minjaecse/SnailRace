@@ -336,10 +336,10 @@ export default function ScanAnalysisPage() {
 
   /* ── Switch to results ── */
   function showResults(resultOverride = result) {
-    const raw = resultOverride?.raw as any;
+    const innerRaw = (resultOverride?.raw as any)?.raw;
     const isT2VResult =
       resultOverride?.analysis_type === 'T2V' ||
-      (raw?.t2v_prob != null && raw?.decision != null);
+      (innerRaw?.t2v_prob != null && innerRaw?.decision != null);
     if (isT2VResult) {
       navigate('/scan/analysis/t2v');
       return;
