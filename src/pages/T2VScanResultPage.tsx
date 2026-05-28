@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVideoStore } from '../stores/videoStore';
 import s from './ScanAnalysisPage.module.css';
 
@@ -9,12 +9,12 @@ function scoreToPercent(score?: number | null) {
   return score > 1 ? score : score * 100;
 }
 
-function getT2VProb(result: ReturnType<typeof useVideoStore>['result']): number | undefined {
+function getT2VProb(result: { t2v_score?: number | null; raw?: unknown } | null): number | undefined {
   const raw = result?.raw as any;
   if (raw?.t2v_prob != null) return raw.t2v_prob as number;
-  return scoreToPercent(result?.t2v_score) != null
-    ? (result!.t2v_score! > 1 ? result!.t2v_score! / 100 : result!.t2v_score!)
-    : undefined;
+  const score = result?.t2v_score;
+  if (score == null) return undefined;
+  return score > 1 ? score / 100 : score;
 }
 
 /* ─── Component ─── */

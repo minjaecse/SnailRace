@@ -357,14 +357,7 @@ export default function ScanAnalysisPage() {
   }
 
   
-  const handleRerun = async (newModel: string) => {
-    if (!targetLabel) return;
-    const currentLabel = targetLabel;
-    resetAnalysis();
-    try {
-      await submitVideoUrl(currentLabel, newModel === 'T2V' ? 'T2V' : 'DEEPFAKE', newModel === 'T2V' ? undefined : newModel);
-    } catch (e) { console.error(e); }
-  };
+
 
   function resetAnalysis(redirectToScan = false) {
     resetVideoAnalysis();
