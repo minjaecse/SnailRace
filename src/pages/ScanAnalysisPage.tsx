@@ -570,32 +570,6 @@ export default function ScanAnalysisPage() {
               </p>
             </div>
             
-            {!isT2V && (
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>SWAP ENGINE:</span>
-              <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: '3px', borderRadius: '999px', border: '1px solid var(--border-light)' }}>
-                {['RYZE', 'LEE_SIN', 'SHEN', 'RAMMUS'].map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => handleRerun(m)}
-                    style={{
-                      padding: '5px 12px',
-                      fontSize: '0.65rem',
-                      borderRadius: '999px',
-                      border: 'none',
-                      background: result?.analysis_type === m ? 'var(--accent-blue)' : 'transparent',
-                      color: result?.analysis_type === m ? '#fff' : 'var(--text-main)',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </div>
-            )}
             <button className={s.newAnalysisBtn} onClick={() => resetAnalysis(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
