@@ -132,7 +132,7 @@ export default function ScanAnalysisPage() {
   const historyVideoId = searchParams.get('videoId');
   const [progress, setProgress] = useState(0);
   const [stepText, setStepText] = useState(STEPS[0]);
-  const { submitVideoUrl,
+  const {
     currentVideoId,
     targetLabel,
     status,
