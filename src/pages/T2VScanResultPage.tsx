@@ -114,6 +114,7 @@ export default function T2VScanResultPage() {
       </header>
 
       {/* ── Results ── */}
+      <main className={s.main}>
       <div className={s.viewResults}>
 
         {/* Results header */}
@@ -329,6 +330,7 @@ export default function T2VScanResultPage() {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 }
