@@ -373,7 +373,8 @@ export default function ScanAnalysisPage() {
 
   const pctStr = `${Math.floor(progress)}%`;
   const targetName = targetLabel ?? 'video_evidence_73A.mp4';
-  const isT2V = result?.analysis_type === 'T2V';
+  const isT2V = result?.analysis_type === 'T2V' ||
+    ((result?.raw as any)?.t2v_prob != null && (result?.raw as any)?.decision != null);
   
   const verdict = (result?.final_verdict ?? 'UNKNOWN').toUpperCase();
   const scoreText = verdict === 'FAKE' ? 'CRITICAL' : 'SECURE';
@@ -565,7 +566,7 @@ export default function ScanAnalysisPage() {
             <div>
               <h1 className={s.resultsTitle}>Analysis Report</h1>
               <p className={s.resultsSubtitle}>
-                {targetName} • {result?.engine_label || "Standard Engine"} • {result?.xai_heatmap_url ? "XAI forensic evidence available" : "Analyzed report"}
+                {targetName} • {result?.engine_label || (isT2V ? "T2V (VideoMAE)" : "Standard Engine")} • {result?.xai_heatmap_url ? "XAI forensic evidence available" : "Analyzed report"}
               </p>
             </div>
             
