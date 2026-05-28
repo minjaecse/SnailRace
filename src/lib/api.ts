@@ -1,4 +1,5 @@
 const DEFAULT_GATEWAY_API_BASE_URL = "http://43.200.145.225";
+const DEFAULT_AI_STATIC_BASE_URL = 'http://43.200.145.225:60006';
 const DEFAULT_AUTH_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const DEFAULT_USER_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
 const DEFAULT_VIDEO_API_BASE_URL = DEFAULT_GATEWAY_API_BASE_URL;
@@ -7,6 +8,20 @@ const VERCEL_GATEWAY_API_PROXY_URL = '/api/backend';
 export function getApiBaseUrl() {
   const configuredUrl = DEFAULT_GATEWAY_API_BASE_URL;
   return getBrowserSafeBaseUrl(configuredUrl, VERCEL_GATEWAY_API_PROXY_URL);
+}
+
+export function getAiStaticBaseUrl() {
+  return import.meta.env.VITE_AI_STATIC_BASE_URL ?? DEFAULT_AI_STATIC_BASE_URL;
+}
+
+export function resolveXaiUrl(url?: string) {
+  if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('data:image')) return url;
+
+  const baseUrl = getAiStaticBaseUrl();
+  if (url.startsWith('/')) return `${baseUrl}${url}`;
+  return `${baseUrl}/${url}`;
 }
 
 function getAuthApiBaseUrl() {
