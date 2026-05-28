@@ -336,11 +336,17 @@ export default function ScanAnalysisPage() {
 
   /* ── Switch to results ── */
   function showResults(resultOverride = result) {
+    const raw = resultOverride?.raw as any;
+    const isT2VResult =
+      resultOverride?.analysis_type === 'T2V' ||
+      (raw?.t2v_prob != null && raw?.decision != null);
+    if (isT2VResult) {
+      navigate('/scan/analysis/t2v');
+      return;
+    }
     cancelAnimationFrame(graphAnimRef.current);
     setTopoData(makeTopoDataFromResult(resultOverride));
     setTableData(makeTableDataFromResult(resultOverride));
-    // setRadialData(makeRadialNodes());
-    // setRadialExpanded(false);
     setTopoAnimated(false);
     setView('results');
 

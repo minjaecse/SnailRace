@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import ScanPage from './pages/ScanPage';
 import ScanAnalysisPage from './pages/ScanAnalysisPage';
+import T2VScanResultPage from './pages/T2VScanResultPage';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
@@ -15,6 +16,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<ScanPage />} />
       <Route path="/scan/analysis" element={<ScanAnalysisPage />} />
+      <Route path="/scan/analysis/t2v" element={<T2VScanResultPage />} />
       <Route path="/home" element={<HomePage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/history" element={<HistoryPage />} />
