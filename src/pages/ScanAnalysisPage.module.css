@@ -613,20 +613,37 @@
   font-weight: 400;
 }
 
-.topoAxisLabels {
+.topoPlot {
   display: flex;
-  gap: 24px;
+  flex-grow: 1;
+  gap: 12px;
+}
+
+.topoYAxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 24px;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.topoPlotMain {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.topoAxisX {
+  display: flex;
+  justify-content: space-between;
   font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 700;
-}
-
-.topoAxisY {
-  color: var(--text-main);
-}
-
-.topoAxisX {
   color: var(--text-muted);
 }
 

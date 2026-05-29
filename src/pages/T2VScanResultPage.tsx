@@ -205,32 +205,37 @@ export default function T2VScanResultPage() {
                   {modelUsed} · ATTENTION ROLLOUT
                 </div>
               </div>
-              <div className={s.topoAxisLabels}>
-                <span className={s.topoAxisY}>1.0</span>
-                <span className={s.topoAxisY} style={{ marginTop: 'auto' }}>0.0</span>
-              </div>
-              <div className={s.topoContainer}>
-                {frameImportance.map((imp, i) => {
-                  const h = Math.max(4, Math.min(95, (imp / maxImportance) * 100));
-                  const isHigh = imp >= 0.5;
-                  return (
-                    <div
-                      key={i}
-                      className={`${s.topoBar} ${isHigh ? '' : s.topoBarBlue}`}
-                      style={{
-                        height: `${h}%`,
-                        background: isHigh ? 'var(--accent-blue)' : undefined,
-                        opacity: 0.7 + imp * 0.3,
-                      }}
-                      title={`Frame ${i}: ${imp.toFixed(3)}`}
-                    />
-                  );
-                })}
-              </div>
-              <div className={s.topoAxisX}>
-                <span>0</span>
-                <span>{Math.floor(frameImportance.length / 2)}</span>
-                <span>{frameImportance.length}</span>
+              <div className={s.topoPlot}>
+                <div className={s.topoYAxis}>
+                  <span>1.0</span>
+                  <span>0.5</span>
+                  <span>0.0</span>
+                </div>
+                <div className={s.topoPlotMain}>
+                  <div className={s.topoContainer}>
+                    {frameImportance.map((imp, i) => {
+                      const h = Math.max(4, Math.min(95, (imp / maxImportance) * 100));
+                      const isHigh = imp >= 0.5;
+                      return (
+                        <div
+                          key={i}
+                          className={`${s.topoBar} ${isHigh ? '' : s.topoBarBlue}`}
+                          style={{
+                            height: `${h}%`,
+                            background: isHigh ? 'var(--accent-blue)' : undefined,
+                            opacity: 0.7 + imp * 0.3,
+                          }}
+                          title={`Frame ${i}: ${imp.toFixed(3)}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className={s.topoAxisX}>
+                    <span>Start</span>
+                    <span>Mid</span>
+                    <span>End</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
