@@ -19,7 +19,7 @@ export default function HeroSection() {
               딥페이크 영상 여부를 지금 바로 확인하세요.
             </p>
             <p className={styles.desc}>
-              URL이나 파일을 올리면 됩니다.<br />
+              영상 파일을 올리면 됩니다.<br />
               기술적인 지식 없이도 누구나, 무료로 바로 사용할 수 있습니다.
             </p>
             <div className={styles.actions}>

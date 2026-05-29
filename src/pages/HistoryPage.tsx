@@ -112,7 +112,7 @@ export default function HistoryPage() {
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search filename, URL, or date..."
+                    placeholder="Search filename or date..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />

@@ -22,43 +22,34 @@
   align-items: center;
   background: var(--surface-subtle);
   border-radius: var(--radius-sm);
-  padding: 4px 16px;
+  padding: 4px;
 }
 
-.inputRow input[type='text'] {
-  flex-grow: 1;
-  border: none;
+.filePickerBtn {
+  width: 100%;
   background: transparent;
-  padding: 16px 0;
-  font-size: 1rem;
-  color: var(--text-main);
-  outline: none;
-  font-family: var(--font-main);
-}
-
-.inputRow input::placeholder {
-  color: #bdbdbd;
-}
-
-.iconBtn {
-  background: none;
-  border: none;
+  border: 1px dashed var(--border-light);
   cursor: pointer;
   color: var(--text-muted);
-  padding: 8px;
+  padding: 32px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   border-radius: var(--radius-sm);
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  font-weight: 500;
   transition: all 0.2s;
 }
 
-.iconBtn:hover {
-  background: var(--border-light);
+.filePickerBtn:hover {
+  background: var(--bg-white);
+  border-color: var(--accent-blue);
   color: var(--text-main);
 }
 
-.iconBtn:disabled {
+.filePickerBtn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }

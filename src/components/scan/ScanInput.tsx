@@ -16,7 +16,6 @@ const DESCRIPTIONS = {
 type DeepfakeSubModel = 'RYZE' | 'LEE_SIN' | 'SHEN' | 'RAMMUS';
 
 export default function ScanInput() {
-  const [url, setUrl] = useState('');
   const [category, setCategory] = useState<VideoAnalysisType>('DEEPFAKE');
   const [subModel, setSubModel] = useState<DeepfakeSubModel>('SHEN');
   const [agreed, setAgreed] = useState(false);
@@ -24,7 +23,7 @@ export default function ScanInput() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-  const { submitVideoUrl, uploadVideoFile, isSubmitting, error, clearError } = useVideoStore();
+  const { uploadVideoFile, isSubmitting, error, clearError } = useVideoStore();
 
   const requireLogin = () => {
     if (isAuthenticated) return true;
@@ -34,15 +33,8 @@ export default function ScanInput() {
   };
 
   const handleScan = async () => {
-    if (!agreed || !url.trim() || isSubmitting) return;
-    if (!requireLogin()) return;
-    setLoginNotice('');
-    try {
-      await submitVideoUrl(url.trim(), category, category === 'DEEPFAKE' ? subModel : undefined);
-      navigate('/scan/analysis');
-    } catch {
-      // Managed by store
-    }
+    if (!agreed || isSubmitting) return;
+    fileInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,13 +55,6 @@ export default function ScanInput() {
     <div className={styles.inputGroup}>
       <div className={styles.inputRow}>
         <input
-          type="text"
-          placeholder="https://www.example.com/video.mp4"
-          aria-label="Video URL"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <input
           ref={fileInputRef}
           className={styles.fileInput}
           type="file"
@@ -77,7 +62,7 @@ export default function ScanInput() {
           onChange={handleFileChange}
         />
         <button
-          className={styles.iconBtn}
+          className={styles.filePickerBtn}
           aria-label="Upload File"
           type="button"
           disabled={!agreed || isSubmitting}
@@ -88,6 +73,7 @@ export default function ScanInput() {
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
+          <span>{isSubmitting ? 'Uploading video...' : 'Choose a video file'}</span>
         </button>
       </div>
       <div className={styles.actionRow}>
@@ -140,7 +126,7 @@ export default function ScanInput() {
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
           I agree to terms of analysis
         </label>
-        <button className={styles.btnPrimary} onClick={handleScan} disabled={!agreed || !url.trim() || isSubmitting}>
+        <button className={styles.btnPrimary} onClick={handleScan} disabled={!agreed || isSubmitting}>
           {isSubmitting ? 'REQUESTING' : 'SCAN NOW'} <span className={styles.beta}>BETA</span>
         </button>
       </div>
