@@ -325,6 +325,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const data = text ? parseResponseBody(text) : null;
 
   if (!response.ok) {
+    if (response.status === 401 && path !== '/auth/login') {
+      throw new Error('로그인을 먼저 해주세요.');
+    }
+
     const message = readErrorMessage(data) ?? `API request failed. (${response.status})`;
     throw new Error(message);
   }

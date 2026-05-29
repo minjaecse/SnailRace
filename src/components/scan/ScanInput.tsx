@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { VideoAnalysisType } from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 import { useVideoStore } from '../../stores/videoStore';
 import styles from './ScanInput.module.css';
 
@@ -19,12 +20,23 @@ export default function ScanInput() {
   const [category, setCategory] = useState<VideoAnalysisType>('DEEPFAKE');
   const [subModel, setSubModel] = useState<DeepfakeSubModel>('SHEN');
   const [agreed, setAgreed] = useState(false);
+  const [loginNotice, setLoginNotice] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { submitVideoUrl, uploadVideoFile, isSubmitting, error } = useVideoStore();
+  const { isAuthenticated } = useAuthStore();
+  const { submitVideoUrl, uploadVideoFile, isSubmitting, error, clearError } = useVideoStore();
+
+  const requireLogin = () => {
+    if (isAuthenticated) return true;
+    clearError();
+    setLoginNotice('로그인을 먼저 해주세요.');
+    return false;
+  };
 
   const handleScan = async () => {
     if (!agreed || !url.trim() || isSubmitting) return;
+    if (!requireLogin()) return;
+    setLoginNotice('');
     try {
       await submitVideoUrl(url.trim(), category, category === 'DEEPFAKE' ? subModel : undefined);
       navigate('/scan/analysis');
@@ -37,6 +49,8 @@ export default function ScanInput() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !agreed || isSubmitting) return;
+    if (!requireLogin()) return;
+    setLoginNotice('');
     try {
       await uploadVideoFile(file, category, category === 'DEEPFAKE' ? subModel : undefined);
       navigate('/scan/analysis');
@@ -130,7 +144,7 @@ export default function ScanInput() {
           {isSubmitting ? 'REQUESTING' : 'SCAN NOW'} <span className={styles.beta}>BETA</span>
         </button>
       </div>
-      {error && <p className={styles.errorText}>{error}</p>}
+      {(loginNotice || error) && <p className={styles.errorText}>{loginNotice || error}</p>}
     </div>
   );
 }
