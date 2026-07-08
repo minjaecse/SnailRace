@@ -1,0 +1,14 @@
+auth-service/.gradle/
+auth-service/build/
+user-service/.gradle/
+user-service/build/
+.DS_Store
+
+# 환경변수 파일 (비밀번호 포함)
+.env
+
+.claude/
+.vscode/
+.idea/
+build/
+.gradle/
